@@ -1,0 +1,3102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Boy 🌤️</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <!-- Supabase client for Weather Leagues -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* ─── Reset & Base ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-bg:          #1a1a2e;
+      --color-surface:     #16213e;
+      --color-surface-2:   #0f3460;
+      --color-accent:      #e94560;
+      --color-gold:        #ffd700;
+      --color-gold-dim:    #c9a800;
+      --color-text:        #eaeaea;
+      --color-text-muted:  #9a9ab0;
+      --color-success:     #2ecc71;
+
+      --sunny-bg:      #2a2310;
+      --sunny-accent:  #f5a623;
+      --cloudy-bg:     #1a1e2e;
+      --cloudy-accent: #7b9cc4;
+      --rainy-bg:      #121a2a;
+      --rainy-accent:  #4a90d9;
+      --snowy-bg:      #151f2e;
+      --snowy-accent:  #a8d8ea;
+      --stormy-bg:     #1a1225;
+      --stormy-accent: #9b59b6;
+      --foggy-bg:      #181a1e;
+      --foggy-accent:  #95a5a6;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: 'Nunito', sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    a { color: var(--color-accent); }
+    a:hover { text-decoration: underline; }
+
+    /* ─── Keyframe Animations ───────────────────────────────────── */
+    @keyframes bob {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-10px); }
+    }
+    @keyframes droop {
+      0%, 100% { transform: translateY(0px) rotate(-3deg); }
+      50%       { transform: translateY(6px) rotate(3deg); }
+    }
+    @keyframes shimmer {
+      0%   { transform: translate(-15%, -15%) rotate(0deg); opacity: 0.6; }
+      100% { transform: translate(15%, 15%) rotate(20deg); opacity: 1; }
+    }
+    @keyframes gloom {
+      0%   { transform: translate(-15%, -15%) rotate(0deg); opacity: 0.3; }
+      100% { transform: translate(15%, 15%) rotate(20deg); opacity: 0.6; }
+    }
+    @keyframes pulse-text {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), 0 0 60px rgba(255, 215, 0, 0.1); }
+      50%       { box-shadow: 0 0 35px rgba(255, 215, 0, 0.5), 0 0 80px rgba(255, 215, 0, 0.2); }
+    }
+    @keyframes gloom-pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(100, 120, 160, 0.25), 0 0 50px rgba(80, 100, 140, 0.1); }
+      50%       { box-shadow: 0 0 30px rgba(100, 120, 160, 0.4), 0 0 70px rgba(80, 100, 140, 0.2); }
+    }
+
+    /* ─── Header ─────────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      padding: 2.5rem 1rem 1.5rem;
+      background: linear-gradient(160deg, #0f3460 0%, #16213e 60%, #1a1a2e 100%);
+      border-bottom: 3px solid var(--color-accent);
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(233,69,96,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    header h1 {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      color: var(--color-gold);
+      text-shadow: 3px 3px 0px var(--color-accent), 6px 6px 0px rgba(0,0,0,0.3);
+      letter-spacing: 3px;
+      line-height: 1;
+      position: relative;
+    }
+    .tagline {
+      color: var(--color-text-muted);
+      font-size: 0.95rem;
+      margin-top: 0.6rem;
+      letter-spacing: 1px;
+      position: relative;
+    }
+
+    /* ─── Weather King Banner ────────────────────────────────────── */
+    #king-banner {
+      background: linear-gradient(135deg, #2c1810 0%, #3d2b0a 40%, #2c1a08 70%, #1e1208 100%);
+      border: 3px solid var(--color-gold);
+      border-radius: 20px;
+      margin: 2rem auto;
+      max-width: 880px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      animation: glow-pulse 3s ease-in-out infinite;
+      position: relative;
+      overflow: hidden;
+    }
+    #king-banner::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at center, rgba(255,215,0,0.09) 0%, transparent 55%);
+      animation: shimmer 5s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    .king-label {
+      font-family: 'Boogaloo', cursive;
+      font-size: 0.9rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--color-gold-dim);
+      margin-bottom: 0.5rem;
+    }
+    .king-crown {
+      font-size: 3.5rem;
+      display: block;
+      animation: bob 2.2s ease-in-out infinite;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    #king-city-name {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(2rem, 5.5vw, 3.8rem);
+      color: var(--color-gold);
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+      line-height: 1.1;
+      position: relative;
+    }
+    #king-temp {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(3rem, 8vw, 5.5rem);
+      color: #ffffff;
+      line-height: 1;
+      margin: 0.2rem 0;
+      position: relative;
+    }
+    #king-condition {
+      font-size: 1.15rem;
+      color: #ffe08a;
+      margin-bottom: 1.5rem;
+      font-weight: 700;
+      position: relative;
+    }
+    .king-activities {
+      background: rgba(0,0,0,0.25);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      text-align: left;
+      display: inline-block;
+      max-width: 620px;
+      width: 100%;
+      position: relative;
+    }
+    .king-activities h3 {
+      font-family: 'Boogaloo', cursive;
+      font-size: 1.2rem;
+      color: var(--color-gold);
+      margin-bottom: 0.75rem;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+    .king-activities ul {
+      list-style: none;
+      padding: 0;
+    }
+    .king-activities li {
+      padding: 0.4rem 0;
+      font-size: 0.95rem;
+      color: #f0e6c0;
+      border-bottom: 1px solid rgba(255,215,0,0.1);
+      display: flex;
+      gap: 0.6rem;
+      align-items: flex-start;
+    }
+    .king-activities li:last-child { border-bottom: none; }
+    .king-activities li::before {
+      content: '✦';
+      color: var(--color-gold);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* King loading state */
+    #king-loading {
+      font-family: 'Boogaloo', cursive;
+      font-size: 1.5rem;
+      color: var(--color-gold-dim);
+      animation: pulse-text 1.5s ease-in-out infinite;
+      padding: 2rem 0;
+    }
+    #king-content { animation: fade-in 0.6s ease-out; }
+
+    /* ─── Global Status / Error ──────────────────────────────────── */
+    #global-status {
+      text-align: center;
+      padding: 0.75rem 2rem;
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+    #global-status.error {
+      color: var(--color-accent);
+      font-style: normal;
+      font-weight: 700;
+    }
+
+    /* ─── Cards Grid ─────────────────────────────────────────────── */
+    #cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      padding: 0.5rem 2rem 3rem;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+    .section-label {
+      text-align: center;
+      font-family: 'Boogaloo', cursive;
+      font-size: 1.4rem;
+      color: var(--color-text-muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 0.5rem 2rem 0;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    /* ─── City Card ──────────────────────────────────────────────── */
+    .city-card {
+      background: var(--color-surface);
+      border-radius: 14px;
+      padding: 1.5rem;
+      border-left: 6px solid var(--color-text-muted);
+      position: relative;
+      transition: transform 0.22s ease, box-shadow 0.22s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      animation: fade-in 0.5s ease-out both;
+    }
+    .city-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    }
+
+    /* Weather category modifiers */
+    .weather-sunny  { background: var(--sunny-bg);  border-left-color: var(--sunny-accent); }
+    .weather-cloudy { background: var(--cloudy-bg); border-left-color: var(--cloudy-accent); }
+    .weather-rainy  { background: var(--rainy-bg);  border-left-color: var(--rainy-accent); }
+    .weather-snowy  { background: var(--snowy-bg);  border-left-color: var(--snowy-accent); }
+    .weather-stormy { background: var(--stormy-bg); border-left-color: var(--stormy-accent); }
+    .weather-foggy  { background: var(--foggy-bg);  border-left-color: var(--foggy-accent); }
+
+    /* #1 ranked card gets a golden glow */
+    .city-card.rank-1 {
+      box-shadow: 0 0 0 1px rgba(255,215,0,0.3), 0 0 25px rgba(255,215,0,0.2);
+    }
+    .city-card.rank-1:hover {
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 0 30px rgba(255,215,0,0.3);
+    }
+
+    .card-rank {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-family: 'Boogaloo', cursive;
+      font-size: 1.1rem;
+      color: var(--color-text-muted);
+      opacity: 0.7;
+    }
+    .rank-1 .card-rank { color: var(--color-gold); opacity: 1; font-size: 1.2rem; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding-right: 2.5rem;
+    }
+    .card-emoji {
+      font-size: 1.8rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .card-city {
+      font-family: 'Boogaloo', cursive;
+      font-size: 1.35rem;
+      color: var(--color-text);
+      line-height: 1.2;
+      word-break: break-word;
+    }
+    .rank-1 .card-city { color: #fff; }
+
+    .card-temp {
+      font-family: 'Boogaloo', cursive;
+      font-size: 3.2rem;
+      color: var(--color-text);
+      line-height: 1;
+    }
+    .card-condition {
+      font-size: 0.88rem;
+      color: var(--color-text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-stats {
+      display: flex;
+      gap: 1rem;
+      margin: 0.25rem 0;
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--color-text-muted);
+    }
+    .stat-value {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--color-text);
+    }
+
+    .card-article {
+      margin-top: auto;
+      padding-top: 0.85rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.8rem;
+    }
+    .article-label {
+      display: block;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      font-size: 0.7rem;
+      margin-bottom: 0.3rem;
+    }
+    .article-link {
+      color: var(--color-accent);
+      text-decoration: none;
+      font-size: 0.85rem;
+      line-height: 1.35;
+      display: block;
+      font-weight: 700;
+      transition: color 0.15s;
+    }
+    .article-link:hover { color: #ff7b96; text-decoration: underline; }
+
+    /* Error card state */
+    .card-error {
+      opacity: 0.5;
+      font-size: 0.85rem;
+      color: var(--color-accent);
+      font-style: italic;
+    }
+
+    /* ─── Weather Peasant Banner ──────────────────────────────────── */
+    #peasant-banner {
+      background: linear-gradient(135deg, #0e131f 0%, #131a28 40%, #0a0f1a 70%, #080c14 100%);
+      border: 3px solid #4a6080;
+      border-radius: 20px;
+      margin: 0 auto 2rem;
+      max-width: 880px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      animation: gloom-pulse 4s ease-in-out infinite;
+      position: relative;
+      overflow: hidden;
+    }
+    #peasant-banner::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at center, rgba(74,96,128,0.07) 0%, transparent 55%);
+      animation: gloom 7s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    .peasant-label {
+      font-family: 'Boogaloo', cursive;
+      font-size: 0.9rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #5a7090;
+      margin-bottom: 0.5rem;
+    }
+    .peasant-spoon {
+      font-size: 3.5rem;
+      display: block;
+      animation: droop 3s ease-in-out infinite;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    #peasant-city-name {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(2rem, 5.5vw, 3.8rem);
+      color: #8aa0bc;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+      line-height: 1.1;
+      position: relative;
+    }
+    #peasant-temp {
+      font-family: 'Boogaloo', cursive;
+      font-size: clamp(3rem, 8vw, 5.5rem);
+      color: #aab8cc;
+      line-height: 1;
+      margin: 0.2rem 0;
+      position: relative;
+    }
+    #peasant-condition {
+      font-size: 1.15rem;
+      color: #7a92a8;
+      margin-bottom: 1.5rem;
+      font-weight: 700;
+      position: relative;
+    }
+    .peasant-activities {
+      background: rgba(0,0,0,0.35);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      text-align: left;
+      display: inline-block;
+      max-width: 620px;
+      width: 100%;
+      position: relative;
+    }
+    .peasant-activities h3 {
+      font-family: 'Boogaloo', cursive;
+      font-size: 1.2rem;
+      color: #6a8aaa;
+      margin-bottom: 0.75rem;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+    .peasant-activities ul {
+      list-style: none;
+      padding: 0;
+    }
+    .peasant-activities li {
+      padding: 0.4rem 0;
+      font-size: 0.95rem;
+      color: #8090a4;
+      border-bottom: 1px solid rgba(74,96,128,0.15);
+      display: flex;
+      gap: 0.6rem;
+      align-items: flex-start;
+    }
+    .peasant-activities li:last-child { border-bottom: none; }
+    .peasant-activities li::before {
+      content: '✦';
+      color: #4a6080;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Peasant loading state */
+    #peasant-loading {
+      font-family: 'Boogaloo', cursive;
+      font-size: 1.5rem;
+      color: #5a7090;
+      animation: pulse-text 2s ease-in-out infinite;
+      padding: 2rem 0;
+    }
+    #peasant-content { animation: fade-in 0.6s ease-out; }
+
+    /* ─── Footer ─────────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 1.5rem 1rem 2rem;
+      color: var(--color-text-muted);
+      font-size: 0.8rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    footer a { color: var(--color-text-muted); }
+    footer a:hover { color: var(--color-text); }
+
+    /* ─── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      #cards-grid { grid-template-columns: 1fr; padding: 0.5rem 1rem 2rem; }
+      #king-banner { margin: 1rem; padding: 1.75rem 1.25rem; }
+      .king-activities { padding: 1rem; }
+      #peasant-banner { margin: 1rem; padding: 1.75rem 1.25rem; }
+      .peasant-activities { padding: 1rem; }
+    }
+    @media (max-width: 440px) {
+      header h1 { font-size: 2.4rem; }
+      #king-banner { border-radius: 14px; }
+      #peasant-banner { border-radius: 14px; }
+    }
+
+    /* ─── Tab Navigation ─────────────────────────────────────────── */
+    #tab-bar {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      padding: 1.25rem 1rem 0;
+      background: linear-gradient(160deg, #0f3460 0%, #16213e 60%, #1a1a2e 100%);
+      border-bottom: 3px solid var(--color-accent);
+    }
+    .tab-btn {
+      font-family: 'Boogaloo', cursive;
+      font-size: 1.05rem;
+      letter-spacing: 1px;
+      padding: 0.65rem 1.75rem;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-bottom: none;
+      border-radius: 10px 10px 0 0;
+      background: rgba(255,255,255,0.04);
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      margin: 0 0.25rem;
+    }
+    .tab-btn:hover { background: rgba(255,255,255,0.09); color: var(--color-text); }
+    .tab-btn[aria-selected="true"] {
+      background: var(--color-bg);
+      color: var(--color-gold);
+      border-color: var(--color-accent);
+      position: relative;
+      bottom: -3px;
+      z-index: 1;
+    }
+
+    /* ─── Forecast Page Layout ───────────────────────────────────── */
+    #forecast-page {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem 3rem;
+    }
+    #forecast-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      padding: 0.9rem 1.25rem;
+      background: var(--color-surface);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    #auth-bar { display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem; }
+    .guest-badge {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      padding: 0.3rem 0.9rem;
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+    }
+    .btn-auth {
+      font-family: 'Boogaloo', cursive;
+      font-size: 0.95rem;
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-auth:hover { opacity: 0.85; }
+    .btn-auth.primary   { background: var(--color-accent); color: #fff; }
+    .btn-auth.secondary { background: var(--color-surface-2); color: var(--color-text); }
+    .logged-in-bar { display: flex; align-items: center; gap: 0.75rem; }
+    .logged-in-bar .username { font-weight: 700; color: var(--color-gold); }
+    .logged-in-bar .user-points { font-size: 0.85rem; color: var(--color-text-muted); }
+
+    #settlement-controls { display: flex; align-items: center; gap: 0.75rem; }
+    #settlement-status { font-size: 0.85rem; color: var(--color-text-muted); font-style: italic; }
+    #btn-settle-now {
+      font-family: 'Boogaloo', cursive;
+      font-size: 0.95rem;
+      padding: 0.4rem 1.1rem;
+      background: var(--color-surface-2);
+      color: var(--color-text);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #btn-settle-now:hover    { background: #1a4080; }
+    #btn-settle-now:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ─── User Stats Panel ───────────────────────────────────────── */
+    #user-stats-panel {
+      background: var(--color-surface);
+      border-radius: 12px;
+      border: 1px solid rgba(255,215,0,0.15);
+      padding: 1.1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .stat-pill { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; }
+    .stat-pill .pill-value {
+      font-family: 'Boogaloo', cursive;
+      font-size: 1.9rem;
+      color: var(--color-gold);
+      line-height: 1;
+    }
+    .stat-pill .pill-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--color-text-muted);
+    }
+
+    /* ─── City Forecast Section ──────────────────────────────────── */
+    .city-forecast-section { margin-bottom: 2.25rem; animation: fade-in 0.4s ease-out both; }
+    .city-forecast-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 0.65rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid rgba(255,255,255,0.07);
+    }
+    .city-forecast-name { font-family: 'Boogaloo', cursive; font-size: 1.45rem; color: var(--color-text); }
+    .city-record { font-size: 0.78rem; color: var(--color-text-muted); }
+
+    /* ─── Day Cards Row ──────────────────────────────────────────── */
+    .day-cards-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.55rem;
+    }
+    @media (max-width: 960px)  { .day-cards-row { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width: 540px)  { .day-cards-row { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 540px)  { #forecast-page { padding: 1rem 1rem 2rem; } }
+
+    /* ─── Day Bet Card ───────────────────────────────────────────── */
+    .day-bet-card {
+      background: var(--color-surface);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.07);
+      padding: 0.7rem 0.55rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.28rem;
+      text-align: center;
+      transition: transform 0.15s, box-shadow 0.15s;
+      font-size: 0.82rem;
+    }
+    .day-bet-card.state-available:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .day-bet-card.state-today { border-color: var(--color-accent); box-shadow: 0 0 0 1px rgba(233,69,96,0.25); }
+    .day-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-muted); font-weight: 700; }
+    .day-date  { font-family: 'Boogaloo', cursive; font-size: 0.9rem; color: var(--color-text); }
+    .day-emoji { font-size: 1.35rem; line-height: 1.2; }
+    .day-temp-max { font-family: 'Boogaloo', cursive; font-size: 1.35rem; color: var(--color-text); line-height: 1; }
+    .bet-line      { font-size: 0.76rem; color: var(--color-gold-dim); font-weight: 700; }
+    .points-stake  { font-size: 0.7rem; color: var(--color-text-muted); }
+    .bet-buttons   { display: flex; gap: 0.3rem; margin-top: 0.2rem; }
+    .btn-over, .btn-under {
+      flex: 1;
+      font-family: 'Boogaloo', cursive;
+      font-size: 0.83rem;
+      padding: 0.32rem 0.15rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      line-height: 1;
+    }
+    .btn-over  { background: #1a4a2a; color: #5dcc8a; border: 1px solid #2a6a3a; }
+    .btn-under { background: #3a1a2a; color: #cc6a8a; border: 1px solid #5a2a3a; }
+    .btn-over:hover  { background: #1f5a32; transform: scale(1.04); }
+    .btn-under:hover { background: #4a2035; transform: scale(1.04); }
+
+    /* Locked/pending state */
+    .day-bet-card.state-locked-pending {
+      border-color: rgba(255,215,0,0.3);
+      background: linear-gradient(160deg, var(--color-surface) 0%, rgba(255,215,0,0.04) 100%);
+    }
+    .lock-indicator { font-size: 0.72rem; color: var(--color-gold-dim); font-weight: 700; }
+    .bet-pick-display            { font-size: 0.78rem; font-weight: 700; }
+    .bet-pick-display.pick-over  { color: #5dcc8a; }
+    .bet-pick-display.pick-under { color: #cc6a8a; }
+
+    /* Settled states */
+    .day-bet-card.state-settled-won {
+      border-color: rgba(46,204,113,0.5);
+      box-shadow: 0 0 12px rgba(46,204,113,0.12);
+      background: linear-gradient(160deg, var(--color-surface) 0%, rgba(46,204,113,0.05) 100%);
+    }
+    .day-bet-card.state-settled-lost { opacity: 0.6; border-color: rgba(255,255,255,0.04); }
+    .actual-high { font-size: 0.76rem; color: var(--color-text-muted); }
+    .settle-result { font-family: 'Boogaloo', cursive; font-size: 0.95rem; margin-top: 0.1rem; }
+    .settle-result.won  { color: #2ecc71; }
+    .settle-result.lost { color: var(--color-text-muted); }
+    .day-bet-card.state-past-no-bet { opacity: 0.38; }
+
+    /* Loading */
+    #forecast-loading {
+      text-align: center;
+      padding: 3rem 1rem;
+      font-family: 'Boogaloo', cursive;
+      font-size: 1.5rem;
+      color: var(--color-text-muted);
+      animation: pulse-text 1.5s ease-in-out infinite;
+    }
+
+    /* ─── Leaderboard ────────────────────────────────────────────── */
+    #leaderboard-section {
+      margin-top: 2.5rem;
+      background: var(--color-surface);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 1.5rem;
+      max-width: 560px;
+    }
+    #leaderboard-section h2 { font-family: 'Boogaloo', cursive; font-size: 1.5rem; color: var(--color-gold); margin-bottom: 0.2rem; }
+    .leaderboard-note { font-size: 0.76rem; color: var(--color-text-muted); margin-bottom: 1rem; font-style: italic; }
+    .leaderboard-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
+    .leaderboard-entry {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.55rem 0.85rem;
+      background: var(--color-bg);
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .leaderboard-entry.rank-1 {
+      border-color: rgba(255,215,0,0.3);
+      background: linear-gradient(90deg, var(--color-bg), rgba(255,215,0,0.04));
+    }
+    .lb-rank     { font-family: 'Boogaloo', cursive; font-size: 1.15rem; color: var(--color-text-muted); min-width: 2rem; }
+    .leaderboard-entry.rank-1 .lb-rank { color: var(--color-gold); }
+    .lb-username { flex: 1; font-weight: 700; color: var(--color-text); }
+    .lb-points   { font-family: 'Boogaloo', cursive; font-size: 1.25rem; color: var(--color-gold); }
+    .lb-record   { font-size: 0.73rem; color: var(--color-text-muted); }
+
+    /* ─── Auth Modal ─────────────────────────────────────────────── */
+    #auth-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.72);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+      animation: fade-in 0.2s ease-out;
+    }
+    #auth-modal {
+      background: var(--color-surface);
+      border: 2px solid var(--color-accent);
+      border-radius: 16px;
+      padding: 2rem;
+      width: min(400px, 92vw);
+    }
+    #auth-modal h2 { font-family: 'Boogaloo', cursive; font-size: 1.75rem; color: var(--color-gold); margin-bottom: 1.2rem; text-align: center; }
+    .modal-field { display: flex; flex-direction: column; gap: 0.28rem; margin-bottom: 0.8rem; }
+    .modal-field label { font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.8px; color: var(--color-text-muted); }
+    .modal-field input {
+      background: var(--color-bg);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 7px;
+      padding: 0.55rem 0.8rem;
+      color: var(--color-text);
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+    .modal-field input:focus { outline: none; border-color: var(--color-accent); }
+    .modal-error { color: var(--color-accent); font-size: 0.85rem; min-height: 1.1rem; margin-bottom: 0.4rem; text-align: center; }
+    .modal-actions { display: flex; gap: 0.7rem; margin-top: 0.9rem; }
+    .btn-modal-submit {
+      flex: 1;
+      font-family: 'Boogaloo', cursive; font-size: 1.05rem;
+      padding: 0.6rem;
+      background: var(--color-accent); color: #fff;
+      border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-modal-submit:hover { opacity: 0.88; }
+    .btn-modal-cancel {
+      font-family: 'Boogaloo', cursive; font-size: 1.05rem;
+      padding: 0.6rem 1.1rem;
+      background: var(--color-surface-2); color: var(--color-text);
+      border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-modal-cancel:hover { opacity: 0.85; }
+    .modal-switch { text-align: center; margin-top: 1rem; font-size: 0.84rem; color: var(--color-text-muted); }
+    .modal-switch a { color: var(--color-accent); cursor: pointer; }
+    .modal-switch a:hover { text-decoration: underline; }
+
+    /* ─── Toast Notifications ────────────────────────────────────── */
+    #toast-container {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      z-index: 2000;
+      display: flex; flex-direction: column; gap: 0.5rem;
+      pointer-events: none;
+    }
+    .toast {
+      font-family: 'Nunito', sans-serif; font-size: 0.88rem; font-weight: 700;
+      padding: 0.65rem 1.15rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+      animation: toast-in 0.3s ease-out;
+      pointer-events: auto;
+      max-width: 300px;
+    }
+    .toast.success { background: #1a3d2a; border: 1px solid #2ecc71; color: #2ecc71; }
+    .toast.error   { background: #3d1a22; border: 1px solid var(--color-accent); color: var(--color-accent); }
+    .toast.info    { background: var(--color-surface-2); border: 1px solid rgba(255,255,255,0.15); color: var(--color-text); }
+    @keyframes toast-in  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toast-out { from { opacity: 1; transform: translateY(0);    } to { opacity: 0; transform: translateY(8px); } }
+
+    /* ═══ LEAGUES PAGE ══════════════════════════════════════════════ */
+    #leagues-page { padding: 1.5rem 1rem 4rem; max-width: 900px; margin: 0 auto; }
+
+    /* League auth form */
+    .league-auth-form {
+      max-width: 360px; margin: 3rem auto; background: var(--card-bg);
+      border-radius: 16px; padding: 2rem; display: flex; flex-direction: column; gap: 1rem;
+    }
+    .league-auth-form h2 { text-align: center; color: var(--accent); margin: 0 0 .5rem; }
+    .league-auth-form input {
+      background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.15);
+      border-radius: 8px; padding: .7rem 1rem; color: #fff; font-size: .95rem; width: 100%; box-sizing: border-box;
+    }
+    .league-auth-form input:focus { outline: none; border-color: var(--accent); }
+    .league-auth-form .btn-primary {
+      background: var(--accent); color: #000; border: none; border-radius: 8px;
+      padding: .75rem; font-weight: 700; font-size: 1rem; cursor: pointer;
+    }
+    .league-auth-form .btn-primary:hover { filter: brightness(1.1); }
+    .league-auth-form .auth-toggle {
+      text-align: center; color: rgba(255,255,255,.5); font-size: .85rem; cursor: pointer;
+    }
+    .league-auth-form .auth-toggle span { color: var(--accent); text-decoration: underline; }
+    .league-auth-form .auth-error { color: #ff6b6b; font-size: .85rem; text-align: center; }
+
+    /* League dashboard */
+    .leagues-dashboard-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1.5rem; flex-wrap: wrap; gap: .75rem;
+    }
+    .leagues-dashboard-header h2 { margin: 0; color: var(--accent); font-size: 1.4rem; }
+    .league-action-btns { display: flex; gap: .75rem; }
+    .btn-league-action {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2);
+      color: #fff; border-radius: 10px; padding: .55rem 1.1rem; font-size: .9rem;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-league-action:hover { background: rgba(255,255,255,.15); }
+    .btn-league-action.primary { background: var(--accent); border-color: transparent; color: #000; font-weight: 700; }
+    .btn-league-action.primary:hover { filter: brightness(1.1); }
+
+    /* League cards grid */
+    .leagues-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .league-card {
+      background: var(--card-bg); border-radius: 14px; padding: 1.25rem;
+      cursor: pointer; border: 1px solid rgba(255,255,255,.08);
+      transition: transform .15s, border-color .15s;
+    }
+    .league-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .league-card-name { font-weight: 700; font-size: 1.1rem; margin-bottom: .3rem; }
+    .league-card-meta { color: rgba(255,255,255,.5); font-size: .82rem; line-height: 1.6; }
+    .league-card-code {
+      display: inline-block; margin-top: .6rem; background: rgba(255,255,255,.07);
+      border-radius: 6px; padding: .2rem .6rem; font-family: monospace; font-size: .9rem; letter-spacing: .08em;
+    }
+    .no-leagues-msg { text-align: center; color: rgba(255,255,255,.4); padding: 3rem 1rem; font-size: 1rem; }
+
+    /* League view header */
+    .league-view-header {
+      display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1.5rem;
+      padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+    .league-view-title { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
+    .league-view-meta { color: rgba(255,255,255,.55); font-size: .88rem; }
+    .league-view-actions { display: flex; gap: .6rem; margin-top: .4rem; flex-wrap: wrap; }
+    .btn-back {
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      color: #fff; border-radius: 8px; padding: .4rem .9rem; font-size: .85rem; cursor: pointer;
+    }
+    .btn-back:hover { background: rgba(255,255,255,.15); }
+    .invite-code-display {
+      background: rgba(255,255,255,.07); border-radius: 8px; padding: .4rem .9rem;
+      font-family: monospace; font-size: .9rem; letter-spacing: .1em; cursor: pointer;
+      border: 1px solid rgba(255,255,255,.15); color: rgba(255,255,255,.8);
+    }
+    .invite-code-display:hover { background: rgba(255,255,255,.12); }
+
+    /* League betting grid */
+    .league-betting-section { margin-bottom: 2rem; }
+    .league-betting-section h3 { color: rgba(255,255,255,.7); font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 1rem; }
+
+    /* Standings */
+    .standings-panel { background: var(--card-bg); border-radius: 16px; padding: 1.25rem; margin-top: 1.5rem; }
+    .standings-tabs { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
+    .standings-tab-btn {
+      background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.6); border-radius: 8px; padding: .45rem .9rem; font-size: .88rem; cursor: pointer;
+    }
+    .standings-tab-btn.active { background: var(--accent); color: #000; font-weight: 700; border-color: transparent; }
+    .standings-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    .standings-table th { color: rgba(255,255,255,.4); font-weight: 600; text-align: left; padding: .4rem .6rem; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .standings-table td { padding: .55rem .6rem; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .standings-table tr:last-child td { border-bottom: none; }
+    .standings-rank { color: rgba(255,255,255,.4); width: 2rem; }
+    .standings-rank-1 { color: gold; font-weight: 800; }
+    .standings-username { font-weight: 600; }
+    .standings-pts { color: var(--accent); font-weight: 700; text-align: right; }
+    .standings-wl { color: rgba(255,255,255,.5); text-align: right; }
+    .standings-empty { color: rgba(255,255,255,.35); text-align: center; padding: 1.5rem; font-size: .9rem; }
+
+    /* League modals (reuse existing modal overlay styles if present, add these) */
+    .league-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 1000;
+      display: flex; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .league-modal {
+      background: #1a1a2e; border-radius: 18px; padding: 1.75rem; width: 100%; max-width: 420px;
+      border: 1px solid rgba(255,255,255,.15); max-height: 90vh; overflow-y: auto;
+    }
+    .league-modal h3 { margin: 0 0 1.25rem; color: var(--accent); font-size: 1.2rem; }
+    .league-modal label { display: block; color: rgba(255,255,255,.6); font-size: .82rem; margin-bottom: .3rem; margin-top: .75rem; }
+    .league-modal input, .league-modal select {
+      width: 100%; box-sizing: border-box; background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: .65rem .9rem;
+      color: #fff; font-size: .95rem;
+    }
+    .league-modal input:focus, .league-modal select:focus { outline: none; border-color: var(--accent); }
+    .league-modal select option { background: #1a1a2e; }
+    .city-checkboxes { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-top: .5rem; }
+    .city-checkbox-label {
+      display: flex; align-items: center; gap: .5rem; background: rgba(255,255,255,.05);
+      border-radius: 7px; padding: .4rem .6rem; cursor: pointer; font-size: .82rem;
+      border: 1px solid rgba(255,255,255,.08); transition: background .12s;
+    }
+    .city-checkbox-label:hover { background: rgba(255,255,255,.1); }
+    .city-checkbox-label input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+    .league-modal-actions { display: flex; gap: .6rem; margin-top: 1.25rem; }
+    .league-modal-actions button { flex: 1; padding: .7rem; border-radius: 9px; font-size: .95rem; cursor: pointer; border: none; }
+    .btn-modal-cancel { background: rgba(255,255,255,.1); color: rgba(255,255,255,.7); }
+    .btn-modal-cancel:hover { background: rgba(255,255,255,.15); }
+    .btn-modal-confirm { background: var(--accent); color: #000; font-weight: 700; }
+    .btn-modal-confirm:hover { filter: brightness(1.1); }
+    .league-modal .modal-error { color: #ff6b6b; font-size: .83rem; margin-top: .5rem; }
+    .league-signout-bar { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
+    .btn-league-signout {
+      background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.5); border-radius: 8px; padding: .35rem .8rem; font-size: .82rem; cursor: pointer;
+    }
+    .btn-league-signout:hover { background: rgba(255,255,255,.12); }
+  </style>
+</head>
+<body>
+
+  <!-- ═══ HEADER ═══════════════════════════════════════════════════ -->
+  <header>
+    <h1>🌤️ Weather Boy</h1>
+    <p class="tagline">The only weather app you can actually bet on.</p>
+  </header>
+
+  <!-- ═══ TAB NAVIGATION ══════════════════════════════════════════ -->
+  <nav id="tab-bar" role="tablist" aria-label="Weather Boy navigation">
+    <button class="tab-btn" id="tab-weather"  role="tab" aria-selected="true"  aria-controls="weather-page">🌤️ Today's Weather</button>
+    <button class="tab-btn" id="tab-forecast" role="tab" aria-selected="false" aria-controls="forecast-page">📅 7-Day Forecast &amp; Bets</button>
+    <button class="tab-btn" id="tab-leagues" role="tab" aria-selected="false">🏆 Leagues</button>
+  </nav>
+
+  <!-- ═══ WEATHER PAGE ══════════════════════════════════════════════ -->
+  <div id="weather-page">
+
+  <!-- ═══ WEATHER KING BANNER ══════════════════════════════════════ -->
+  <section id="king-banner" aria-label="Weather King">
+    <div id="king-loading">Crowning the Weather King... 👑</div>
+    <div id="king-content" hidden>
+      <div class="king-label">Today's Weather King</div>
+      <span class="king-crown">👑</span>
+      <div id="king-city-name"></div>
+      <div id="king-temp"></div>
+      <div id="king-condition"></div>
+      <div class="king-activities">
+        <h3>🗺️ Things to do in paradise today:</h3>
+        <ul id="king-activities-list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ STATUS ════════════════════════════════════════════════════ -->
+  <div id="global-status" role="status" aria-live="polite">Fetching weather data for all cities...</div>
+
+  <!-- ═══ SECTION LABEL ════════════════════════════════════════════ -->
+  <p class="section-label" id="ranking-label" hidden>🌡️ City Rankings — Warmest to Coolest</p>
+
+  <!-- ═══ CITY CARDS GRID ══════════════════════════════════════════ -->
+  <main id="cards-grid" aria-label="City weather cards"></main>
+
+  <!-- ═══ WEATHER PEASANT BANNER ═══════════════════════════════════ -->
+  <section id="peasant-banner" aria-label="Weather Peasant" hidden>
+    <div id="peasant-loading">Identifying the Weather Peasant... 🥄</div>
+    <div id="peasant-content" hidden>
+      <div class="peasant-label">Today's Weather Peasant</div>
+      <span class="peasant-spoon">🥄</span>
+      <div id="peasant-city-name"></div>
+      <div id="peasant-temp"></div>
+      <div id="peasant-condition"></div>
+      <div class="peasant-activities">
+        <h3>😔 Ways to cope with your circumstances today:</h3>
+        <ul id="peasant-activities-list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FOOTER ═══════════════════════════════════════════════════ -->
+  <footer>
+    <p>Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> · Updated on page load · Articles randomly selected from a curated library · Not responsible for questionable activity choices</p>
+  </footer>
+
+  </div><!-- /#weather-page -->
+
+  <!-- ═══ FORECAST & BETTING PAGE ══════════════════════════════════ -->
+  <div id="forecast-page" hidden>
+    <div id="forecast-page-inner">
+      <div id="forecast-controls">
+        <div id="auth-bar">
+          <!-- Rendered by JS -->
+        </div>
+        <div id="settlement-controls">
+          <span id="settlement-status"></span>
+          <button id="btn-settle-now">⚡ Settle Pending Bets</button>
+        </div>
+      </div>
+
+      <!-- User stats — shown when logged in -->
+      <div id="user-stats-panel" hidden></div>
+
+      <!-- City forecast rows + bet cards -->
+      <div id="forecast-loading">Loading 7-day forecasts… ☁️</div>
+      <div id="forecast-grid"></div>
+
+      <!-- Leaderboard — shown when users exist -->
+      <div id="leaderboard-section" hidden>
+        <h2>🏆 Leaderboard</h2>
+        <p class="leaderboard-note">Local rankings — same device only</p>
+        <ol class="leaderboard-list"></ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE 3: LEAGUES ═════════════════════════════════════════ -->
+  <div id="leagues-page" hidden>
+    <div id="leagues-page-inner">
+      <div id="leagues-content">
+        <!-- populated by renderLeaguesPage() -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification container -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- ═══ JAVASCRIPT ════════════════════════════════════════════════ -->
+  <script>
+    'use strict';
+
+    // ─── LOCATIONS ───────────────────────────────────────────────────
+    const LOCATIONS = [
+      { name: "Bellevue, WA",       lat: 47.6205, lon: -122.2007 },
+      { name: "Kirkland, WA",       lat: 47.6769, lon: -122.2171 },
+      { name: "Washougal, WA",      lat: 45.5826, lon: -122.3534 },
+      { name: "El Segundo, CA",     lat: 33.9192, lon: -118.4165 },
+      { name: "Studio City, CA",    lat: 34.1413, lon: -118.3878 },
+      { name: "Naperville, IL",     lat: 41.7485, lon:  -88.1861 },
+      { name: "Chicago, IL",        lat: 41.8818, lon:  -87.6232 },
+      { name: "Providence, RI",     lat: 41.8252, lon:  -71.4189 },
+      { name: "Arlington, MA",      lat: 42.4054, lon:  -71.1545 },
+      { name: "Delft, Netherlands", lat: 52.0067, lon:    4.3556 },
+      { name: "Malvern, England",   lat: 52.1079, lon:   -2.3174 },
+      { name: "Tokyo, Japan",       lat: 35.6895, lon:  139.6917 }
+    ];
+
+    // ─── WMO WEATHER CODE MAP ────────────────────────────────────────
+    const WMO_CODES = {
+      0:  { description: "Clear sky",                    emoji: "☀️",  category: "sunny"  },
+      1:  { description: "Mainly clear",                 emoji: "🌤️", category: "sunny"  },
+      2:  { description: "Partly cloudy",                emoji: "⛅",  category: "cloudy" },
+      3:  { description: "Overcast",                     emoji: "☁️",  category: "cloudy" },
+      45: { description: "Foggy",                        emoji: "🌫️", category: "foggy"  },
+      48: { description: "Icy fog",                      emoji: "🌫️", category: "foggy"  },
+      51: { description: "Light drizzle",                emoji: "🌦️", category: "rainy"  },
+      53: { description: "Moderate drizzle",             emoji: "🌦️", category: "rainy"  },
+      55: { description: "Dense drizzle",                emoji: "🌧️", category: "rainy"  },
+      56: { description: "Freezing drizzle",             emoji: "🌧️", category: "rainy"  },
+      57: { description: "Heavy freezing drizzle",       emoji: "🌧️", category: "rainy"  },
+      61: { description: "Light rain",                   emoji: "🌧️", category: "rainy"  },
+      63: { description: "Moderate rain",                emoji: "🌧️", category: "rainy"  },
+      65: { description: "Heavy rain",                   emoji: "🌧️", category: "rainy"  },
+      66: { description: "Freezing rain",                emoji: "🌧️", category: "rainy"  },
+      67: { description: "Heavy freezing rain",          emoji: "🌨️", category: "snowy"  },
+      71: { description: "Light snow",                   emoji: "🌨️", category: "snowy"  },
+      73: { description: "Moderate snow",                emoji: "❄️",  category: "snowy"  },
+      75: { description: "Heavy snow",                   emoji: "❄️",  category: "snowy"  },
+      77: { description: "Snow grains",                  emoji: "🌨️", category: "snowy"  },
+      80: { description: "Light rain showers",           emoji: "🌦️", category: "rainy"  },
+      81: { description: "Moderate rain showers",        emoji: "🌧️", category: "rainy"  },
+      82: { description: "Violent rain showers",         emoji: "⛈️",  category: "stormy" },
+      85: { description: "Snow showers",                 emoji: "🌨️", category: "snowy"  },
+      86: { description: "Heavy snow showers",           emoji: "❄️",  category: "snowy"  },
+      95: { description: "Thunderstorm",                 emoji: "⛈️",  category: "stormy" },
+      96: { description: "Thunderstorm with hail",       emoji: "⛈️",  category: "stormy" },
+      99: { description: "Thunderstorm, heavy hail",     emoji: "⛈️",  category: "stormy" }
+    };
+
+    function getWMO(code) {
+      return WMO_CODES[code] ?? { description: "Mysterious skies", emoji: "🌡️", category: "cloudy" };
+    }
+
+    // ─── ARTICLE LIBRARY ─────────────────────────────────────────────
+    const ARTICLES = {
+      // SUNNY → Philosophy & Ideas
+      sunny: [
+        { title: "The Stone — Philosophy Column · The New York Times",
+          url: "https://www.nytimes.com/column/the-stone" },
+        { title: "Ideas — The Atlantic",
+          url: "https://www.theatlantic.com/ideas/" },
+        { title: "Philosophy — Aeon Magazine",
+          url: "https://aeon.co/philosophy" },
+        { title: "Culture — The New Yorker",
+          url: "https://www.newyorker.com/culture" },
+        { title: "Arts & Culture — The Wall Street Journal",
+          url: "https://www.wsj.com/arts-culture" },
+        { title: "Opinion — The New York Times",
+          url: "https://www.nytimes.com/section/opinion" },
+        { title: "Books — The Atlantic",
+          url: "https://www.theatlantic.com/books/" }
+      ],
+
+      // CLOUDY → Technology
+      cloudy: [
+        { title: "Technology — The New York Times",
+          url: "https://www.nytimes.com/section/technology" },
+        { title: "Technology — The Atlantic",
+          url: "https://www.theatlantic.com/technology/" },
+        { title: "Wired Magazine",
+          url: "https://www.wired.com" },
+        { title: "MIT Technology Review",
+          url: "https://www.technologyreview.com" },
+        { title: "Tech — The Wall Street Journal",
+          url: "https://www.wsj.com/tech" },
+        { title: "Science & Technology — The Economist",
+          url: "https://www.economist.com/science-and-technology" },
+        { title: "Future — BBC",
+          url: "https://www.bbc.com/future" }
+      ],
+
+      // FOGGY → Technology (alt)
+      foggy: [
+        { title: "Technology — Slate",
+          url: "https://slate.com/technology" },
+        { title: "Science — The New Yorker",
+          url: "https://www.newyorker.com/science" },
+        { title: "Artificial Intelligence — Wired",
+          url: "https://www.wired.com/tag/artificial-intelligence/" },
+        { title: "AI — MIT Technology Review",
+          url: "https://www.technologyreview.com/topic/artificial-intelligence/" },
+        { title: "Technology — The Economist",
+          url: "https://www.economist.com/science-and-technology" }
+      ],
+
+      // RAINY → Chess
+      rainy: [
+        { title: "Chess — The Guardian",
+          url: "https://www.theguardian.com/sport/chess" },
+        { title: "The Sporting Scene — The New Yorker",
+          url: "https://www.newyorker.com/sports/sporting-scene" },
+        { title: "Games — The New York Times",
+          url: "https://www.nytimes.com/section/games" },
+        { title: "Culture — The Economist",
+          url: "https://www.economist.com/culture" },
+        { title: "Chess & Strategy — The Atlantic",
+          url: "https://www.theatlantic.com/culture/" },
+        { title: "Sport — The Wall Street Journal",
+          url: "https://www.wsj.com/arts-culture" },
+        { title: "Chess — BBC Sport",
+          url: "https://www.bbc.co.uk/sport/chess" },
+        { title: "Sports — The New York Times",
+          url: "https://www.nytimes.com/section/sports" }
+      ],
+
+      // SNOWY → Wine
+      snowy: [
+        { title: "Wine School — The New York Times",
+          url: "https://www.nytimes.com/column/wine-school" },
+        { title: "Food & Drink — The Wall Street Journal",
+          url: "https://www.wsj.com/life-work/food-cooking" },
+        { title: "Wine — The Guardian",
+          url: "https://www.theguardian.com/lifeandstyle/wine" },
+        { title: "Wine — Food & Wine Magazine",
+          url: "https://www.foodandwine.com/wine" },
+        { title: "Drink — Bon Appétit",
+          url: "https://www.bonappetit.com/drinks" },
+        { title: "Food & Culture — The Atlantic",
+          url: "https://www.theatlantic.com/health/" },
+        { title: "Life & Arts — The Economist",
+          url: "https://www.economist.com/culture" },
+        { title: "Wine & Spirits — The New Yorker",
+          url: "https://www.newyorker.com/culture" }
+      ],
+
+      // STORMY → Gaming
+      stormy: [
+        { title: "Gaming — The New York Times",
+          url: "https://www.nytimes.com/section/gaming" },
+        { title: "Games — The Guardian",
+          url: "https://www.theguardian.com/games" },
+        { title: "Gaming — Wired",
+          url: "https://www.wired.com/tag/games/" },
+        { title: "Culture — The Atlantic",
+          url: "https://www.theatlantic.com/culture/" },
+        { title: "Culture & Entertainment — The Economist",
+          url: "https://www.economist.com/culture" },
+        { title: "Culture Desk — The New Yorker",
+          url: "https://www.newyorker.com/culture/culture-desk" },
+        { title: "Gaming — BBC Culture",
+          url: "https://www.bbc.com/culture" },
+        { title: "Entertainment — The Wall Street Journal",
+          url: "https://www.wsj.com/arts-culture" }
+      ]
+    };
+
+    function pickRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function getArticleForCategory(category) {
+      const bucket = ARTICLES[category] ? category : 'cloudy';
+      return pickRandom(ARTICLES[bucket]);
+    }
+
+    // ─── CITY ACTIVITY RECOMMENDATIONS ───────────────────────────────
+    const CITY_ACTIVITIES = {
+      "Bellevue, WA": [
+        "Visit the Bellevue Arts Museum and feel the tension between corporate money and genuine creativity",
+        "Walk the Bellevue Downtown Park loop and count how many people are on calls about something in 'the cloud'",
+        "Find a Korean BBQ spot on 148th and spend two hours at a table you should have left an hour ago",
+        "Take the 550 bus across the bridge and watch the Eastside skyline materialize from the water like a dare",
+        "Wander through Meydenbauer Bay Park and contemplate what Seattle is doing across the lake"
+      ],
+      "Kirkland, WA": [
+        "Walk Marina Park at dusk and watch the Seattle skyline glow across Lake Washington like a smug postcard",
+        "Find the Costco corporate origin plaque and stand before it with the reverence it arguably deserves",
+        "Spend a Sunday morning at the Kirkland waterfront pretending you live on the water — you almost could",
+        "Eat at a Juanita neighborhood restaurant and feel the specific calm of a town that figured itself out quietly",
+        "Rent a paddleboard at the marina and regret it within 200 yards but finish the loop out of stubbornness"
+      ],
+      "Washougal, WA": [
+        "Hike to Beacon Rock — second largest monolith in North America, embarrassingly undervisited",
+        "Drive the Historic Columbia River Highway and stop at every single waterfall with full ceremony",
+        "Canoe down the Washougal River and count bald eagles — you'll see at least one",
+        "Visit Steigerwald Lake National Wildlife Refuge at dawn for fog that feels like another dimension",
+        "Find the old Pendleton Woolen Mills outlet and spend an unreasonable amount of time there"
+      ],
+      "El Segundo, CA": [
+        "Watch 747s clear your head by 200 feet from the beach at LAX Dunes — deeply primal experience",
+        "Walk the full perimeter of the Chevron refinery and contemplate the nature of infrastructure",
+        "Find the El Segundo Butterfly Preserve — 0.22 acres of monarch chaos hidden in the suburbs",
+        "Time your lunch to coincide with a Southwest landing that shakes every window on Main St",
+        "Get a coffee at a local spot and watch engineers from nearby aerospace companies stare into space"
+      ],
+      "Studio City, CA": [
+        "Hike Fryman Canyon at 6am and count the number of people quietly crying into their phones",
+        "Visit the Farmers Market and spot at least one person who was almost famous in 2009",
+        "Have a coffee at Aroma Café and wait for someone to pitch a screenplay to their agent out loud",
+        "Find the unmarked steps on Wrightwood Ave that give you a surprise valley view at sunset",
+        "Walk down Ventura Blvd for 30 minutes and tally how many new restaurants replaced old restaurants"
+      ],
+      "Naperville, IL": [
+        "Count joggers on the Riverwalk for 10 minutes and feel complex emotions about your own habits",
+        "Visit Naper Settlement and find the reenactor who is just a little too into their 1830s persona",
+        "Try every ice cream flavor at Oberweis and report back to absolutely no one",
+        "Attend a park district event you have no business attending and make one (1) friend",
+        "Sit in the weirdly cheerful downtown district and try to identify what exactly is vibrating"
+      ],
+      "Chicago, IL": [
+        "Stand under The Bean at the exact moment it starts raining and stare at your infinite warped reflections",
+        "Take the Pink Line all the way to its final stop and discover a completely different city",
+        "Order a Chicago-style hot dog and aggressively refuse ketchup even if you privately like ketchup",
+        "Walk the 606 Trail at midnight and feel briefly like you own all of it",
+        "Find the half-submerged lower floors on Wacker Drive and think about where all the water went"
+      ],
+      "Arlington, MA": [
+        "Walk the Minuteman Bikeway and feel the ghost of Paul Revere doing something much more urgent on the same route",
+        "Visit Spy Pond on a January morning when it's half-frozen and understand why colonial winters broke people",
+        "Find the Jason Russell House and read the placard about the April 19, 1775 skirmish with the quiet attention it deserves",
+        "Walk Massachusetts Ave through town and notice the independent shops that have survived things that shouldn't be survivable",
+        "Sit on a bench at Menotomy Rocks Park and understand that this is what New England normalcy looks like, and it's actually fine"
+      ],
+      "Delft, Netherlands": [
+        "Rent a cargo bike and carry something unreasonably large across every canal bridge you can find",
+        "Visit the tomb of William of Orange in the Nieuwe Kerk and have a long, unsolicited think",
+        "Wake up at 7am and walk the old center before tourists arrive — it is a completely different place",
+        "Find a brown café, order a jenever, sip it with tremendous slowness while reading a Dutch newspaper",
+        "Sit by the Oostpoort gate at dusk and sketch it badly on a napkin — you are Vermeer now, effectively"
+      ],
+      "Malvern, England": [
+        "Hike the Malvern Hills to the summit and let a righteous British wind rearrange your entire face",
+        "Drink from one of the natural springs — Victorians traveled from miles around for this, which should tell you something about Victorians",
+        "Walk through Great Malvern and count the independent shops that have inexplicably survived the retail apocalypse",
+        "Visit the Priory and sit in the oldest pew you can find and see how long you can stay genuinely still",
+        "Find a pub, order a real ale, and become temporarily convinced that nothing in the modern world makes any sense"
+      ],
+      "Tokyo, Japan": [
+        "Spend a full hour in the stationery floors of Tokyu Hands and buy one deeply unnecessary perfect object",
+        "Find the tiny Golden Gai bars in Shinjuku that seat exactly six people and squeeze into one",
+        "Ride the Yamanote Line in one complete loop without getting off and call it a moving meditation",
+        "Visit the Yanaka cemetery neighborhood at dusk and appreciate a quietness that still exists in Tokyo",
+        "Go to the Ghibli Museum in Mitaka and cry a little in front of the Totoro replica — it's fine"
+      ],
+      "Providence, RI": [
+        "Show up to WaterFire on a whim and stare into the braziers while someone plays saxophone badly",
+        "Spend a Sunday morning at the RISD Museum — it's criminally empty and it shouldn't be",
+        "Order a coffee milk (the official Rhode Island state drink) and drink it with state pride",
+        "Walk the full length of Benefit Street and count Federal-era houses like you're doing a very slow census",
+        "Find the Napoleon death mask at the John Hay Library on Brown's campus — it's real and it's there and it's watching"
+      ]
+    };
+
+    function getActivitiesForCity(name) {
+      return CITY_ACTIVITIES[name] ?? [
+        "Walk around until something surprises you",
+        "Find the best local coffee and order whatever the person ahead of you ordered",
+        "Sit somewhere outside and listen to whatever's happening",
+        "Find a park, claim a bench, think big thoughts",
+        "Ask a local where they'd go if they had the afternoon off"
+      ];
+    }
+
+    // ─── CITY PEASANT COMMISERATIONS ─────────────────────────────────
+    const PEASANT_ACTIVITIES = {
+      "Bellevue, WA": [
+        "Drive to the Bellevue Collection in the rain, park in the enormous garage, and sit in the food court without buying anything for a while",
+        "Open your laptop at a coffee shop and notice that everyone else already did — you are all equally trapped and equally fine with it",
+        "Watch the 520 bridge disappear into the clouds over Lake Washington and accept that Seattle is also suffering, which helps",
+        "Order delivery, stare at your phone, and reflect that the weather is bad but your apartment is large — relatively speaking, you're winning",
+        "Find a Korean spa and surrender completely to the heat while the rain handles everything outside"
+      ],
+      "Kirkland, WA": [
+        "Sit in your car at Marina Park and watch the rain turn Lake Washington into a gray mirror that reflects nothing useful",
+        "Accept that the waterfront you came for is inaccessible and get a coffee instead — this was always where it was heading",
+        "Drive slowly down Lake Washington Blvd and watch the expensive houses endure the rain with no visible improvement in mood",
+        "Make a mental note to come back when it's sunny, which you will not do, but the intention is doing something for you right now",
+        "Find a pub in downtown Kirkland, settle into a booth, and let the afternoon become the evening without fighting it"
+      ],
+      "Washougal, WA": [
+        "Drive to the Columbia and watch the river run fast and gray and completely indifferent to your situation",
+        "Rebrand this as a 'cozy day' and mean it ironically but also a little bit genuinely",
+        "Make soup. Eat the soup alone. The soup is the highlight of the day.",
+        "Find a Pendleton blanket and get inside it. The foreseeable future is cancelled.",
+        "Watch the rain hit the Columbia Gorge and admit it does still look kind of majestic, despite everything"
+      ],
+      "El Segundo, CA": [
+        "Go to the beach and stare at the gray ocean as planes land into the mist above your head — same view, worse version",
+        "Watch the Karl the Fog advisory and realize you live inside a marine layer now and this is simply your life",
+        "Order delivery and remain inside. The planes overhead understand. They are also just passing through.",
+        "Walk Main Street, note that every business is still open, and feel oddly moved by the normalcy of it all",
+        "Sit by the Chevron refinery fence and contemplate that infrastructure does not care about your feelings and is correct"
+      ],
+      "Studio City, CA": [
+        "Drive the 101 in the rain and achieve nothing except authentic Los Angeles suffering",
+        "Your hiking trail is closed, your outdoor café table is a puddle — accept the couch as your destiny today",
+        "Make a list of things you'd be doing right now if it were 75 and sunny. Do none of them.",
+        "Watch Fryman Canyon from your car window and feel smug that you already did that this week",
+        "Call someone in New York and complain about the rain. They will not be sympathetic."
+      ],
+      "Naperville, IL": [
+        "Sit inside the perfectly maintained downtown and watch it be perfectly maintained in the rain like nothing is wrong",
+        "Call a family member in Florida. Just to remind yourself that other conditions exist.",
+        "Find a way to blame the weather on Chicago somehow — it's only 35 miles away and frankly suspicious",
+        "Go to the Riverwalk and count the one (1) person still jogging out of pure spite",
+        "Eat an Oberweis ice cream inside in the rain and let that be the defiant act of the day"
+      ],
+      "Chicago, IL": [
+        "Lean INTO the wind. You have no choice. Chicago weather is not a situation you negotiate with.",
+        "Layer aggressively, accept that the train is delayed, find a dive bar, and process it all in that order",
+        "Remind yourself that the architecture is still beautiful even when your face is numb",
+        "Order deep dish and wait the 45 minutes and that is now your entire evening and you have made peace with this",
+        "Find a Portillo's, stand inside, and feel briefly but genuinely proud of this city's commitment to excess"
+      ],
+      "Arlington, MA": [
+        "Accept that the Minuteman Bikeway is a different experience in November sleet and make no further plans involving it",
+        "Make tea. Then make more tea. Then consider whether a third tea represents optimism or resignation and decide it doesn't matter.",
+        "Drive through town with the heat on and notice that everyone has retreated inside and the streets have the calm of a negotiated ceasefire",
+        "Call a friend in a warmer place, listen to them describe their weather, and sit with the complex feelings that follow",
+        "Find a diner on Mass Ave, order something with eggs, and read a newspaper the way people used to when they had nowhere to be"
+      ],
+      "Delft, Netherlands": [
+        "Cycle to the nearest café in the rain because you are Dutch and this is simply a Tuesday with slightly more water",
+        "Sit inside and watch the rain hit the canals and admit it still looks nice — almost suspiciously nice",
+        "Make stamppot. Stamppot is the official dish of the Weather Peasant and it is actually delicious.",
+        "Pull on your full rain kit, get on the bike, go where you were going. You live here. This is fine.",
+        "Find a brown café, order something hot, and watch the tourists outside making worse decisions than you"
+      ],
+      "Malvern, England": [
+        "Congratulate yourself on being British — you have spent your entire life training for exactly this meteorological moment",
+        "Put the kettle on. Then put it on again. Then a third time. The kettle is your only reliable companion today.",
+        "Walk to the top of the hills anyway and face the horizontal rain with jaw-set resolve and absolutely no visibility",
+        "Find the pub. Do not leave the pub. You have made the correct choice.",
+        "Describe the weather to a passing American tourist as 'a bit of a drizzle' and observe the genuine horror in their eyes"
+      ],
+      "Tokyo, Japan": [
+        "Stand under the awning of a Family Mart in the rain and calmly consider your options for as long as necessary",
+        "Find a ramen shop — there is always one within 200 meters — and do not leave until fully defrosted",
+        "Take the train somewhere warmer and retroactively decide that was always the plan",
+        "Buy an umbrella from a convenience store for ¥500 and feel the quiet dignity of a society that has solved rain",
+        "Find a Doutor Coffee, order a hot lemon, open a book, and let the rain handle everything outside"
+      ],
+      "Providence, RI": [
+        "Walk Benefit Street in the rain and feel it become approximately 40% more gothic and atmospheric than usual",
+        "Find a Brown student and silently compare who has more existential reasons to be gloomy — you will win, and it will feel hollow",
+        "The RISD Museum has free admission on Sundays — go there, be warm, look at things made by people who also suffered",
+        "Order a Del's Lemonade and drink it in defiance of the weather, because Rhode Island does not negotiate",
+        "Sit in a diner on Wickenden Street and listen to the rain on the windows and order more coffee and stay"
+      ]
+    };
+
+    function getPeasantActivitiesForCity(name) {
+      return PEASANT_ACTIVITIES[name] ?? [
+        "Find the warmest room in any building and claim it without explanation",
+        "Order something hot and make peace with today's situation",
+        "Call someone who has it worse and commiserate from a position of relative warmth",
+        "Postpone everything that could theoretically be done tomorrow",
+        "Locate the nearest couch and begin your recovery"
+      ];
+    }
+
+    // ─── API FETCHING ─────────────────────────────────────────────────
+    const API_BASE = "https://api.open-meteo.com/v1/forecast";
+
+    function buildApiUrl(lat, lon) {
+      const p = new URLSearchParams({
+        latitude:          lat,
+        longitude:         lon,
+        current:           "temperature_2m,wind_speed_10m,weather_code",
+        daily:             "precipitation_sum",
+        temperature_unit:  "fahrenheit",
+        wind_speed_unit:   "mph",
+        timezone:          "auto",
+        forecast_days:     1
+      });
+      return `${API_BASE}?${p.toString()}`;
+    }
+
+    async function fetchWeather(location) {
+      const res = await fetch(buildApiUrl(location.lat, location.lon));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const d = await res.json();
+      return {
+        name:        location.name,
+        temp:        Math.round(d.current.temperature_2m),
+        wind:        Math.round(d.current.wind_speed_10m),
+        weatherCode: d.current.weather_code,
+        precip:      d.daily.precipitation_sum[0] ?? 0,
+        error:       false
+      };
+    }
+
+    // ─── WEATHER KING / PEASANT LOGIC ─────────────────────────────────
+    function kingScore(city) {
+      // Higher temp = better; precipitation penalized heavily
+      return city.temp - (city.precip * 10);
+    }
+
+    function findKing(cities) {
+      return cities.reduce((best, city) => kingScore(city) > kingScore(best) ? city : best);
+    }
+
+    function findPeasant(cities) {
+      return cities.reduce((worst, city) => kingScore(city) < kingScore(worst) ? city : worst);
+    }
+
+    function sortByTemp(cities) {
+      return [...cities].sort((a, b) => b.temp - a.temp);
+    }
+
+    // ─── RENDERING ────────────────────────────────────────────────────
+    function renderKingBanner(city) {
+      const wmo = getWMO(city.weatherCode);
+
+      document.getElementById('king-city-name').textContent = city.name;
+      document.getElementById('king-temp').textContent      = `${city.temp}°F ${wmo.emoji}`;
+      document.getElementById('king-condition').textContent = wmo.description;
+
+      const list = document.getElementById('king-activities-list');
+      list.innerHTML = '';
+      getActivitiesForCity(city.name).forEach(act => {
+        const li = document.createElement('li');
+        li.textContent = act;
+        list.appendChild(li);
+      });
+
+      document.getElementById('king-loading').hidden = true;
+      document.getElementById('king-content').hidden = false;
+    }
+
+    function renderPeasantBanner(city) {
+      const wmo = getWMO(city.weatherCode);
+
+      document.getElementById('peasant-city-name').textContent = city.name;
+      document.getElementById('peasant-temp').textContent      = `${city.temp}°F ${wmo.emoji}`;
+      document.getElementById('peasant-condition').textContent = wmo.description;
+
+      const list = document.getElementById('peasant-activities-list');
+      list.innerHTML = '';
+      getPeasantActivitiesForCity(city.name).forEach(act => {
+        const li = document.createElement('li');
+        li.textContent = act;
+        list.appendChild(li);
+      });
+
+      document.getElementById('peasant-loading').hidden  = true;
+      document.getElementById('peasant-content').hidden  = false;
+      document.getElementById('peasant-banner').hidden   = false;
+    }
+
+    function renderCard(city, rank) {
+      const wmo     = getWMO(city.weatherCode);
+      const article = getArticleForCategory(wmo.category);
+
+      const card = document.createElement('article');
+      card.className = `city-card weather-${wmo.category}${rank === 1 ? ' rank-1' : ''}`;
+      card.style.animationDelay = `${(rank - 1) * 0.06}s`;
+
+      if (city.error) {
+        card.innerHTML = `
+          <div class="card-rank">#${rank}</div>
+          <div class="card-header">
+            <span class="card-emoji">❌</span>
+            <h2 class="card-city">${city.name}</h2>
+          </div>
+          <div class="card-error">Weather data unavailable — the skies went quiet.</div>`;
+        return card;
+      }
+
+      card.innerHTML = `
+        <div class="card-rank">#${rank}</div>
+        <div class="card-header">
+          <span class="card-emoji">${wmo.emoji}</span>
+          <h2 class="card-city">${city.name}</h2>
+        </div>
+        <div class="card-temp">${city.temp}°F</div>
+        <div class="card-condition">${wmo.description}</div>
+        <div class="card-stats">
+          <div class="stat">
+            <span class="stat-label">Wind</span>
+            <span class="stat-value">${city.wind} mph</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Precip</span>
+            <span class="stat-value">${parseFloat(city.precip).toFixed(1)} mm</span>
+          </div>
+        </div>
+        <div class="card-article">
+          <span class="article-label">📖 Recommended Reading</span>
+          <a class="article-link"
+             href="${article.url}"
+             target="_blank"
+             rel="noopener noreferrer">${article.title}</a>
+        </div>`;
+
+      return card;
+    }
+
+    function renderAllCards(sorted) {
+      const grid = document.getElementById('cards-grid');
+      grid.innerHTML = '';
+      sorted.forEach((city, i) => grid.appendChild(renderCard(city, i + 1)));
+    }
+
+    // ─── MAIN ─────────────────────────────────────────────────────────
+    async function init() {
+      const status = document.getElementById('global-status');
+
+      try {
+        const results = await Promise.all(
+          LOCATIONS.map(loc =>
+            fetchWeather(loc).catch(() => ({
+              name: loc.name, temp: null, wind: null,
+              weatherCode: null, precip: 0, error: true
+            }))
+          )
+        );
+
+        const good = results.filter(c => !c.error && c.temp !== null);
+        const all  = results;
+
+        status.textContent = '';
+
+        if (good.length === 0) {
+          status.textContent = '⚠️ Could not load weather data for any city. Check your connection and refresh.';
+          status.classList.add('error');
+          document.getElementById('king-loading').textContent = 'Weather King unavailable — the skies are offline.';
+          document.getElementById('peasant-loading').textContent = 'Weather Peasant unavailable — also offline.';
+          return;
+        }
+
+        const failCount = all.length - good.length;
+        if (failCount > 0) {
+          status.textContent = `⚠️ ${failCount} city/cities could not be loaded.`;
+          status.classList.add('error');
+        }
+
+        renderKingBanner(findKing(good));
+
+        // Only crown a peasant if there are at least 2 successful cities
+        if (good.length >= 2) {
+          renderPeasantBanner(findPeasant(good));
+        }
+
+        const sorted = sortByTemp(good);
+        const withErrors = [...sorted, ...all.filter(c => c.error)];
+
+        document.getElementById('ranking-label').hidden = false;
+        renderAllCards(withErrors);
+
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        status.textContent = `⚠️ Something went wrong: ${err.message}. Try refreshing.`;
+        status.classList.add('error');
+        document.getElementById('king-loading').textContent = 'Weather King unavailable.';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    // ═══════════════════════════════════════════════════════════════
+    // ─── PAGE 2: FORECAST & BETTING ──────────────────────────────
+    // ═══════════════════════════════════════════════════════════════
+
+    // ─── CONSTANTS ───────────────────────────────────────────────
+    const FORECAST_CACHE_KEY = 'wb_forecast_cache';
+    const BETS_KEY           = 'wb_bets';
+    const USERS_KEY          = 'wb_users';
+    const SESSION_KEY        = 'wb_session';
+    const CACHE_TTL_MS       = 30 * 60 * 1000; // 30 minutes
+
+    // ─── MODULE STATE ────────────────────────────────────────────
+    let currentUser        = null;
+    let forecastInitialized = false;
+    let forecastDataCache  = null;
+
+    // ─── UTILITY ─────────────────────────────────────────────────
+    const generateId = () =>
+      (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    // ─── DATE UTILITIES ──────────────────────────────────────────
+    function todayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function daysBetween(fromStr, toStr) {
+      const a = new Date(fromStr + 'T12:00:00');
+      const b = new Date(toStr   + 'T12:00:00');
+      return Math.round((b - a) / 86400000);
+    }
+
+    function isDatePast(dateStr) { return dateStr < todayStr(); }
+
+    function formatDateDisplay(dateStr) {
+      const d = new Date(dateStr + 'T12:00:00');
+      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    function pointsForDaysOut(daysOut) {
+      if (daysOut >= 6) return 5;
+      if (daysOut >= 4) return 3;
+      if (daysOut >= 2) return 2;
+      return 1;
+    }
+
+    // ─── STORAGE: BETS ───────────────────────────────────────────
+    function loadBets()        { try { return JSON.parse(localStorage.getItem(BETS_KEY) || '[]'); } catch { return []; } }
+    function saveBets(bets)    { localStorage.setItem(BETS_KEY, JSON.stringify(bets)); }
+
+    // ─── STORAGE: USERS ──────────────────────────────────────────
+    function loadUsers()       { try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch { return []; } }
+    function saveUsers(users)  { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+
+    // ─── STORAGE: SESSION ────────────────────────────────────────
+    function loadSession() {
+      try {
+        const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+        if (s && s.expiresAt > new Date().toISOString()) return s;
+        return null;
+      } catch { return null; }
+    }
+    function saveSession(userId) {
+      const expiresAt = new Date(Date.now() + 24*60*60*1000).toISOString();
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ userId, expiresAt }));
+    }
+    function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+    // ─── USER AUTH ────────────────────────────────────────────────
+    async function hashPassword(password) {
+      const enc = new TextEncoder().encode(password);
+      const buf = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    async function registerUser(username, email, password) {
+      const users = loadUsers();
+      if (users.some(u => u.username.toLowerCase() === username.toLowerCase()))
+        return { success: false, error: 'Username already taken.' };
+      const passwordHash = await hashPassword(password);
+      const user = {
+        id: generateId(), username: username.trim(), email: email.trim(),
+        passwordHash, createdAt: new Date().toISOString(),
+        totalPoints: 0, wins: 0, losses: 0
+      };
+      users.push(user);
+      saveUsers(users);
+      // Migrate any guest bets and tally their settled results
+      const allBets = loadBets();
+      const migrated = allBets.map(b => b.userId === 'guest' ? { ...b, userId: user.id } : b);
+      saveBets(migrated);
+      // Credit points/wins/losses from already-settled guest bets
+      const settledGuest = migrated.filter(b => b.userId === user.id && b.status !== 'pending');
+      if (settledGuest.length > 0) {
+        const userIdx = users.findIndex(u => u.id === user.id);
+        settledGuest.forEach(b => {
+          users[userIdx].totalPoints += b.pointsEarned;
+          if (b.status === 'won') users[userIdx].wins += 1;
+          else           users[userIdx].losses += 1;
+        });
+        saveUsers(users);
+      }
+      return { success: true, user: users.find(u => u.id === user.id) };
+    }
+
+    async function loginUser(username, password) {
+      const users = loadUsers();
+      const user  = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+      if (!user) return { success: false, error: 'Username not found.' };
+      const hash = await hashPassword(password);
+      if (hash !== user.passwordHash) return { success: false, error: 'Incorrect password.' };
+      return { success: true, user };
+    }
+
+    function logoutUser() {
+      currentUser = null;
+      clearSession();
+      renderAuthBar();
+      updateUserStatsPanel();
+      if (forecastDataCache) renderForecastGrid(forecastDataCache);
+    }
+
+    function updateUserStatsInStorage(userId, pointsDelta, won) {
+      const users = loadUsers();
+      const idx   = users.findIndex(u => u.id === userId);
+      if (idx === -1) return;
+      users[idx].totalPoints += pointsDelta;
+      if (won) users[idx].wins += 1; else users[idx].losses += 1;
+      saveUsers(users);
+      if (currentUser && currentUser.id === userId) currentUser = users[idx];
+    }
+
+    // ─── BET LOGIC ───────────────────────────────────────────────
+    function findExistingBet(cityName, targetDate, userId) {
+      return loadBets().find(b =>
+        b.cityName === cityName && b.targetDate === targetDate && b.userId === userId
+      ) ?? null;
+    }
+
+    function placeBet(cityName, cityLat, cityLon, targetDate, forecastLine, pick, userId) {
+      if (isDatePast(targetDate))               return { success: false, error: 'Cannot bet on a past date.' };
+      if (findExistingBet(cityName, targetDate, userId)) return { success: false, error: 'You already have a bet on this city/day.' };
+      const daysOut     = daysBetween(todayStr(), targetDate);
+      const pointsStake = pointsForDaysOut(daysOut);
+      const bet = {
+        id: `${cityName}_${targetDate}_${userId}`,
+        cityName, cityLat, cityLon, targetDate,
+        placedAt: new Date().toISOString(),
+        daysOut, forecastLine, pick, userId,
+        status: 'pending', pointsStake, pointsEarned: 0,
+        actualHigh: null, settledAt: null
+      };
+      const bets = loadBets();
+      bets.push(bet);
+      saveBets(bets);
+      return { success: true, bet };
+    }
+
+    // ─── FORECAST API ────────────────────────────────────────────
+    function buildForecastUrl(lat, lon) {
+      const p = new URLSearchParams({
+        latitude: lat, longitude: lon,
+        daily: 'temperature_2m_max,weather_code',
+        temperature_unit: 'fahrenheit', timezone: 'auto', forecast_days: 7
+      });
+      return `${API_BASE}?${p.toString()}`;
+    }
+
+    async function fetchForecast(location) {
+      const res = await fetch(buildForecastUrl(location.lat, location.lon));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const d = await res.json();
+      return {
+        cityName: location.name,
+        days: d.daily.time.map((date, i) => ({
+          date,
+          tempMax:     Math.round(d.daily.temperature_2m_max[i] * 10) / 10,
+          line:        Math.round((d.daily.temperature_2m_max[i] + 0.5) * 10) / 10,
+          weatherCode: d.daily.weather_code[i]
+        })),
+        error: false
+      };
+    }
+
+    async function fetchAllForecasts() {
+      try {
+        const cached = JSON.parse(localStorage.getItem(FORECAST_CACHE_KEY));
+        if (cached && (Date.now() - new Date(cached.fetchedAt).getTime()) < CACHE_TTL_MS)
+          return cached.data;
+      } catch {}
+      const results = await Promise.all(
+        LOCATIONS.map(loc =>
+          fetchForecast(loc).catch(() => ({ cityName: loc.name, days: [], error: true }))
+        )
+      );
+      const data = {};
+      results.forEach(r => { data[r.cityName] = r.error ? null : r.days; });
+      try { localStorage.setItem(FORECAST_CACHE_KEY, JSON.stringify({ fetchedAt: new Date().toISOString(), data })); } catch {}
+      return data;
+    }
+
+    // ─── SETTLEMENT API ──────────────────────────────────────────
+    function buildSettlementUrl(lat, lon, startDate, endDate) {
+      const p = new URLSearchParams({
+        latitude: lat, longitude: lon,
+        daily: 'temperature_2m_max',
+        temperature_unit: 'fahrenheit', timezone: 'auto',
+        start_date: startDate, end_date: endDate || startDate
+      });
+      return `${API_BASE}?${p.toString()}`;
+    }
+
+    async function fetchActualHighs(lat, lon, startDate, endDate) {
+      try {
+        const res = await fetch(buildSettlementUrl(lat, lon, startDate, endDate));
+        if (!res.ok) return {};
+        const d = await res.json();
+        const result = {};
+        (d.daily?.time || []).forEach((date, i) => {
+          const v = d.daily.temperature_2m_max[i];
+          if (v !== null && v !== undefined) result[date] = Math.round(v * 10) / 10;
+        });
+        return result;
+      } catch { return {}; }
+    }
+
+    function settleBet(bet, actualHigh) {
+      const won = bet.pick === 'over' ? actualHigh > bet.forecastLine : actualHigh < bet.forecastLine;
+      return { ...bet, status: won ? 'won' : 'lost', actualHigh, settledAt: new Date().toISOString(), pointsEarned: won ? bet.pointsStake : 0 };
+    }
+
+    async function runSettlement(showFeedback = true) {
+      const btn = document.getElementById('btn-settle-now');
+      if (btn) btn.disabled = true;
+      const bets    = loadBets();
+      const pending = bets.filter(b => b.status === 'pending' && isDatePast(b.targetDate));
+
+      if (pending.length === 0) {
+        if (showFeedback) showToast('No bets to settle right now.', 'info');
+        if (btn) btn.disabled = false;
+        return { settled: 0, errors: 0 };
+      }
+      const statusEl = document.getElementById('settlement-status');
+      if (statusEl) statusEl.textContent = 'Settling…';
+
+      // Group by city to minimize API calls
+      const byCity = {};
+      pending.forEach(b => {
+        if (!byCity[b.cityName]) byCity[b.cityName] = { lat: b.cityLat, lon: b.cityLon, bets: [] };
+        byCity[b.cityName].bets.push(b);
+      });
+
+      let totalSettled = 0, totalWon = 0, totalPoints = 0, errors = 0;
+      const updatedBets = [...bets];
+
+      for (const [, { lat, lon, bets: cityBets }] of Object.entries(byCity)) {
+        const dates   = [...new Set(cityBets.map(b => b.targetDate))].sort();
+        const actuals = await fetchActualHighs(lat, lon, dates[0], dates[dates.length - 1]);
+        cityBets.forEach(bet => {
+          const actual = actuals[bet.targetDate];
+          if (actual === undefined || actual === null) { errors++; return; }
+          const settled = settleBet(bet, actual);
+          const idx = updatedBets.findIndex(b => b.id === bet.id);
+          if (idx !== -1) updatedBets[idx] = settled;
+          totalSettled++;
+          if (settled.status === 'won') { totalWon++; totalPoints += settled.pointsEarned; }
+          if (bet.userId !== 'guest') updateUserStatsInStorage(bet.userId, settled.pointsEarned, settled.status === 'won');
+        });
+      }
+
+      saveBets(updatedBets);
+      if (showFeedback && totalSettled > 0)
+        showToast(`Settled ${totalSettled} bet${totalSettled !== 1 ? 's' : ''}: ${totalWon} won, ${totalSettled - totalWon} lost (+${totalPoints} pts)`, 'success');
+      if (errors > 0 && showFeedback)
+        showToast(`${errors} bet(s) couldn't settle yet — data not available.`, 'info');
+      if (statusEl) statusEl.textContent = '';
+      if (btn) btn.disabled = false;
+      return { settled: totalSettled, errors };
+    }
+
+    // ─── TOAST ───────────────────────────────────────────────────
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'toast-out 0.3s ease-in forwards';
+        toast.addEventListener('animationend', () => toast.remove());
+      }, 3500);
+    }
+
+    // ─── TAB SWITCHING ────────────────────────────────────────────
+    function switchTab(tabName) {
+      const weatherPage  = document.getElementById('weather-page');
+      const forecastPage = document.getElementById('forecast-page');
+      const leaguesPage  = document.getElementById('leagues-page');
+      const tabWeather   = document.getElementById('tab-weather');
+      const tabForecast  = document.getElementById('tab-forecast');
+      const tabLeagues   = document.getElementById('tab-leagues');
+
+      // Hide all pages, deselect all tabs
+      weatherPage.hidden  = true;
+      forecastPage.hidden = true;
+      leaguesPage.hidden  = true;
+      tabWeather.setAttribute('aria-selected', 'false');
+      tabForecast.setAttribute('aria-selected', 'false');
+      tabLeagues.setAttribute('aria-selected', 'false');
+
+      if (tabName === 'weather') {
+        weatherPage.hidden = false;
+        tabWeather.setAttribute('aria-selected', 'true');
+      } else if (tabName === 'forecast') {
+        forecastPage.hidden = false;
+        tabForecast.setAttribute('aria-selected', 'true');
+        if (!forecastInitialized) { forecastInitialized = true; initForecastPage(); }
+      } else if (tabName === 'leagues') {
+        leaguesPage.hidden = false;
+        tabLeagues.setAttribute('aria-selected', 'true');
+        initLeaguesPage();
+      }
+    }
+
+    // ─── RENDER: AUTH BAR ────────────────────────────────────────
+    function renderAuthBar() {
+      const bar = document.getElementById('auth-bar');
+      if (!bar) return;
+      if (currentUser) {
+        bar.innerHTML = `
+          <div class="logged-in-bar">
+            <span class="username">👤 ${escapeHtml(currentUser.username)}</span>
+            <span class="user-points">${currentUser.totalPoints} pts · ${currentUser.wins}W–${currentUser.losses}L</span>
+            <button class="btn-auth secondary" id="btn-logout">Log Out</button>
+          </div>`;
+        document.getElementById('btn-logout').addEventListener('click', logoutUser);
+      } else {
+        bar.innerHTML = `
+          <span class="guest-badge">🎲 Playing as Guest</span>
+          <button class="btn-auth primary"   id="btn-login">Log In</button>
+          <button class="btn-auth secondary" id="btn-register">Register</button>`;
+        document.getElementById('btn-login').addEventListener('click',    () => showAuthModal('login'));
+        document.getElementById('btn-register').addEventListener('click', () => showAuthModal('register'));
+      }
+    }
+
+    // ─── AUTH MODAL ──────────────────────────────────────────────
+    function showAuthModal(mode) {
+      document.getElementById('auth-modal-overlay')?.remove();
+      const isLogin = mode === 'login';
+      const overlay = document.createElement('div');
+      overlay.id = 'auth-modal-overlay';
+      overlay.innerHTML = `
+        <div id="auth-modal" role="dialog" aria-modal="true">
+          <h2>${isLogin ? '🔐 Log In' : '✨ Register'}</h2>
+          <div class="modal-field">
+            <label for="auth-username">Username</label>
+            <input id="auth-username" type="text" autocomplete="username" placeholder="your username">
+          </div>
+          ${!isLogin ? `<div class="modal-field">
+            <label for="auth-email">Email</label>
+            <input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com">
+          </div>` : ''}
+          <div class="modal-field">
+            <label for="auth-password">Password</label>
+            <input id="auth-password" type="password" autocomplete="${isLogin ? 'current-password' : 'new-password'}" placeholder="password">
+          </div>
+          <div class="modal-error" id="auth-error"></div>
+          <div class="modal-actions">
+            <button class="btn-modal-submit" id="auth-submit">${isLogin ? 'Log In' : 'Create Account'}</button>
+            <button class="btn-modal-cancel" id="auth-cancel">Cancel</button>
+          </div>
+          <div class="modal-switch">
+            ${isLogin
+              ? `Don't have an account? <a id="auth-switch">Register</a>`
+              : `Already have an account? <a id="auth-switch">Log In</a>`}
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      document.getElementById('auth-username').focus();
+      document.getElementById('auth-cancel').addEventListener('click', () => overlay.remove());
+      document.getElementById('auth-switch').addEventListener('click', () => { overlay.remove(); showAuthModal(isLogin ? 'register' : 'login'); });
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+      document.getElementById('auth-submit').addEventListener('click', async () => {
+        const username = document.getElementById('auth-username').value.trim();
+        const password = document.getElementById('auth-password').value;
+        const errEl    = document.getElementById('auth-error');
+        if (!username || !password) { errEl.textContent = 'Please fill all fields.'; return; }
+        let result;
+        if (isLogin) {
+          result = await loginUser(username, password);
+        } else {
+          const email = document.getElementById('auth-email')?.value.trim() || '';
+          if (!email) { errEl.textContent = 'Please fill all fields.'; return; }
+          result = await registerUser(username, email, password);
+        }
+        if (!result.success) { errEl.textContent = result.error; return; }
+        currentUser = result.user;
+        saveSession(currentUser.id);
+        overlay.remove();
+        renderAuthBar();
+        updateUserStatsPanel();
+        if (forecastDataCache) renderForecastGrid(forecastDataCache);
+        showToast(`Welcome, ${currentUser.username}! 🎉`, 'success');
+      });
+    }
+
+    // ─── RENDER: USER STATS PANEL ────────────────────────────────
+    function updateUserStatsPanel() {
+      const panel = document.getElementById('user-stats-panel');
+      if (!panel) return;
+      if (!currentUser) { panel.hidden = true; return; }
+      const freshUser = loadUsers().find(u => u.id === currentUser.id) || currentUser;
+      const pending   = loadBets().filter(b => b.userId === currentUser.id && b.status === 'pending').length;
+      const total     = freshUser.wins + freshUser.losses;
+      const winRate   = total > 0 ? Math.round(freshUser.wins / total * 100) : 0;
+      panel.hidden = false;
+      panel.innerHTML = `
+        <div class="stat-pill"><span class="pill-value">${freshUser.totalPoints}</span><span class="pill-label">Points</span></div>
+        <div class="stat-pill"><span class="pill-value" style="color:#2ecc71">${freshUser.wins}</span><span class="pill-label">Wins</span></div>
+        <div class="stat-pill"><span class="pill-value" style="color:#e94560">${freshUser.losses}</span><span class="pill-label">Losses</span></div>
+        <div class="stat-pill"><span class="pill-value" style="color:var(--color-text-muted)">${pending}</span><span class="pill-label">Pending</span></div>
+        <div class="stat-pill"><span class="pill-value">${winRate}%</span><span class="pill-label">Win Rate</span></div>`;
+    }
+
+    // ─── RENDER: LEADERBOARD ─────────────────────────────────────
+    function renderLeaderboard() {
+      const section = document.getElementById('leaderboard-section');
+      if (!section) return;
+      const users = loadUsers();
+      if (users.length === 0) { section.hidden = true; return; }
+      section.hidden = false;
+      const sorted = [...users].sort((a, b) => {
+        if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+        const aWr = a.wins+a.losses > 0 ? a.wins/(a.wins+a.losses) : 0;
+        const bWr = b.wins+b.losses > 0 ? b.wins/(b.wins+b.losses) : 0;
+        return bWr - aWr;
+      });
+      const list = section.querySelector('.leaderboard-list');
+      list.innerHTML = '';
+      sorted.forEach((user, i) => {
+        const li = document.createElement('li');
+        li.className = `leaderboard-entry${i === 0 ? ' rank-1' : ''}`;
+        li.innerHTML = `
+          <span class="lb-rank">${i === 0 ? '👑' : '#'+(i+1)}</span>
+          <span class="lb-username">${escapeHtml(user.username)}</span>
+          <span class="lb-record">${user.wins}W–${user.losses}L</span>
+          <span class="lb-points">${user.totalPoints} pts</span>`;
+        list.appendChild(li);
+      });
+    }
+
+    // ─── RENDER: FORECAST GRID ───────────────────────────────────
+    function renderForecastGrid(forecastData) {
+      const grid = document.getElementById('forecast-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      const userId   = currentUser ? currentUser.id : 'guest';
+      const userBets = loadBets().filter(b => b.userId === userId);
+      LOCATIONS.forEach((loc, i) => {
+        const days    = forecastData[loc.name];
+        const section = renderCityForecastRow(loc.name, days || [], userBets);
+        section.style.animationDelay = `${i * 0.04}s`;
+        grid.appendChild(section);
+      });
+    }
+
+    function renderCityForecastRow(cityName, days, userBets) {
+      const userId   = currentUser ? currentUser.id : 'guest';
+      const cityBets = userBets.filter(b => b.cityName === cityName);
+      const wins     = cityBets.filter(b => b.status === 'won').length;
+      const losses   = cityBets.filter(b => b.status === 'lost').length;
+      const pending  = cityBets.filter(b => b.status === 'pending').length;
+
+      const section = document.createElement('section');
+      section.className = 'city-forecast-section';
+      section.dataset.city = cityName;
+
+      const header = document.createElement('div');
+      header.className = 'city-forecast-header';
+      const recordStr = pending > 0
+        ? `${wins}W–${losses}L–${pending} pending`
+        : (wins + losses > 0 ? `${wins}W–${losses}L` : '');
+      header.innerHTML = `
+        <span class="city-forecast-name">${escapeHtml(cityName)}</span>
+        ${recordStr ? `<span class="city-record">${recordStr}</span>` : ''}`;
+      section.appendChild(header);
+
+      const row = document.createElement('div');
+      row.className = 'day-cards-row';
+      if (!days || days.length === 0) {
+        row.innerHTML = `<div style="grid-column:1/-1;color:var(--color-text-muted);font-size:.85rem;padding:.5rem">Weather data unavailable.</div>`;
+      } else {
+        const today = todayStr();
+        days.forEach(day => {
+          const existingBet = cityBets.find(b => b.targetDate === day.date) ?? null;
+          row.appendChild(renderDayBetCard(cityName, day, existingBet, today));
+        });
+      }
+      section.appendChild(row);
+      return section;
+    }
+
+    function renderDayBetCard(cityName, day, existingBet, today) {
+      const isPast  = day.date < today;
+      const isToday = day.date === today;
+      const daysOut = daysBetween(today, day.date);
+      const stake   = pointsForDaysOut(daysOut);
+      const wmo     = getWMO(day.weatherCode);
+
+      let dayLabel = `Day +${daysOut}`;
+      if (isToday)      dayLabel = 'Today';
+      else if (daysOut === 1) dayLabel = 'Tomorrow';
+
+      const card = document.createElement('article');
+      card.className   = 'day-bet-card';
+      card.dataset.city        = cityName;
+      card.dataset.date        = day.date;
+      card.dataset.line        = day.line;
+      card.dataset.tempMax     = day.tempMax;
+      card.dataset.weatherCode = day.weatherCode;
+
+      if (existingBet) {
+        if (existingBet.status === 'pending') {
+          card.classList.add('state-locked-pending');
+          card.innerHTML = `
+            <div class="day-label">${dayLabel}</div>
+            <div class="day-date">${formatDateDisplay(day.date)}</div>
+            <div class="day-emoji">${wmo.emoji}</div>
+            <div class="day-temp-max">${day.tempMax}°F</div>
+            <div class="bet-line">Line: ${existingBet.forecastLine}°F</div>
+            <div class="bet-pick-display pick-${existingBet.pick}">${existingBet.pick.toUpperCase()} (${existingBet.pointsStake} pts)</div>
+            <div class="lock-indicator">🔒 Bet Placed</div>`;
+        } else {
+          const won = existingBet.status === 'won';
+          card.classList.add(won ? 'state-settled-won' : 'state-settled-lost');
+          card.innerHTML = `
+            <div class="day-label">${dayLabel}</div>
+            <div class="day-date">${formatDateDisplay(day.date)}</div>
+            <div class="day-emoji">${wmo.emoji}</div>
+            <div class="actual-high">Actual: ${existingBet.actualHigh}°F</div>
+            <div class="bet-line">Line: ${existingBet.forecastLine}°F</div>
+            <div class="bet-pick-display pick-${existingBet.pick}">${existingBet.pick.toUpperCase()}</div>
+            <div class="settle-result ${existingBet.status}">${won ? `✓ WON +${existingBet.pointsEarned} pts` : '✗ LOST 0 pts'}</div>`;
+        }
+      } else if (isPast) {
+        card.classList.add('state-past-no-bet');
+        card.innerHTML = `
+          <div class="day-label">${dayLabel}</div>
+          <div class="day-date">${formatDateDisplay(day.date)}</div>
+          <div class="day-emoji">${wmo.emoji}</div>
+          <div class="day-temp-max">${day.tempMax}°F</div>
+          <div class="bet-line" style="opacity:.45">No bet placed</div>`;
+      } else {
+        card.classList.add('state-available');
+        if (isToday) card.classList.add('state-today');
+        card.innerHTML = `
+          <div class="day-label">${dayLabel}</div>
+          <div class="day-date">${formatDateDisplay(day.date)}</div>
+          <div class="day-emoji">${wmo.emoji}</div>
+          <div class="day-temp-max">${day.tempMax}°F</div>
+          <div class="bet-line">Line: ${day.line}°F</div>
+          <div class="points-stake">${stake} pt${stake !== 1 ? 's' : ''} if correct</div>
+          <div class="bet-buttons">
+            <button class="btn-over"  data-pick="over" >▲ Over</button>
+            <button class="btn-under" data-pick="under">▼ Under</button>
+          </div>`;
+      }
+      return card;
+    }
+
+    function updateCardAfterBet(cityName, date, bet) {
+      const card = document.querySelector(
+        `.day-bet-card[data-city="${CSS.escape(cityName)}"][data-date="${date}"]`
+      );
+      if (!card) return;
+      const today   = todayStr();
+      const daysOut = daysBetween(today, date);
+      const wmo     = getWMO(parseInt(card.dataset.weatherCode || '0'));
+      const tempMax = parseFloat(card.dataset.tempMax || '0');
+
+      let dayLabel = `Day +${daysOut}`;
+      if (date === today)  dayLabel = 'Today';
+      else if (daysOut === 1) dayLabel = 'Tomorrow';
+
+      card.className = 'day-bet-card state-locked-pending';
+      card.innerHTML = `
+        <div class="day-label">${dayLabel}</div>
+        <div class="day-date">${formatDateDisplay(date)}</div>
+        <div class="day-emoji">${wmo.emoji}</div>
+        <div class="day-temp-max">${tempMax}°F</div>
+        <div class="bet-line">Line: ${bet.forecastLine}°F</div>
+        <div class="bet-pick-display pick-${bet.pick}">${bet.pick.toUpperCase()} (${bet.pointsStake} pts)</div>
+        <div class="lock-indicator">🔒 Bet Placed</div>`;
+      updateCityRecord(cityName);
+    }
+
+    function updateCityRecord(cityName) {
+      const section = document.querySelector(`.city-forecast-section[data-city="${CSS.escape(cityName)}"]`);
+      if (!section) return;
+      const userId   = currentUser ? currentUser.id : 'guest';
+      const cityBets = loadBets().filter(b => b.cityName === cityName && b.userId === userId);
+      const wins     = cityBets.filter(b => b.status === 'won').length;
+      const losses   = cityBets.filter(b => b.status === 'lost').length;
+      const pending  = cityBets.filter(b => b.status === 'pending').length;
+      const header   = section.querySelector('.city-forecast-header');
+      if (!header) return;
+      let rec = section.querySelector('.city-record');
+      if (!rec) { rec = document.createElement('span'); rec.className = 'city-record'; header.appendChild(rec); }
+      const str = pending > 0
+        ? `${wins}W–${losses}L–${pending} pending`
+        : (wins + losses > 0 ? `${wins}W–${losses}L` : '');
+      rec.textContent = str;
+    }
+
+    // ─── BET CLICK HANDLER ───────────────────────────────────────
+    function handleBetClick(cityName, targetDate, forecastLine, pick) {
+      const loc    = LOCATIONS.find(l => l.name === cityName);
+      if (!loc) return;
+      const userId = currentUser ? currentUser.id : 'guest';
+      const result = placeBet(cityName, loc.lat, loc.lon, targetDate, forecastLine, pick, userId);
+      if (!result.success) { showToast(result.error, 'error'); return; }
+      updateCardAfterBet(cityName, targetDate, result.bet);
+      const pts = result.bet.pointsStake;
+      showToast(
+        `${pick === 'over' ? '▲ OVER' : '▼ UNDER'} ${cityName} · ${formatDateDisplay(targetDate)} · ${pts} pt${pts !== 1 ? 's' : ''} on the line!`,
+        'success'
+      );
+      updateUserStatsPanel();
+    }
+
+    // ─── INIT: FORECAST PAGE ─────────────────────────────────────
+    async function initForecastPage() {
+      const loadingEl = document.getElementById('forecast-loading');
+      const grid      = document.getElementById('forecast-grid');
+      if (loadingEl) loadingEl.hidden = false;
+      if (grid)      grid.innerHTML   = '';
+
+      // Restore session
+      const session = loadSession();
+      if (session) {
+        const users = loadUsers();
+        currentUser = users.find(u => u.id === session.userId) ?? null;
+      }
+
+      renderAuthBar();
+
+      // Silent auto-settlement for any past-due bets
+      await runSettlement(false);
+
+      // Fetch forecast data
+      let forecastData;
+      try {
+        forecastData    = await fetchAllForecasts();
+        forecastDataCache = forecastData;
+      } catch {
+        if (loadingEl) loadingEl.hidden = true;
+        if (grid) grid.innerHTML = `<p style="color:var(--color-accent);text-align:center;padding:2rem 1rem">Failed to load forecast data. Check your connection and try again.</p>`;
+        return;
+      }
+
+      if (loadingEl) loadingEl.hidden = true;
+      renderForecastGrid(forecastData);
+      updateUserStatsPanel();
+      renderLeaderboard();
+    }
+
+    // ─── WIRE PAGE 2 EVENTS (on DOMContentLoaded) ────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('tab-weather').addEventListener('click',  () => switchTab('weather'));
+      document.getElementById('tab-forecast').addEventListener('click', () => switchTab('forecast'));
+
+      document.getElementById('btn-settle-now').addEventListener('click', async () => {
+        await runSettlement(true);
+        if (forecastDataCache) {
+          renderForecastGrid(forecastDataCache);
+          updateUserStatsPanel();
+          renderLeaderboard();
+        }
+      });
+
+      // Delegated bet button handler
+      document.getElementById('forecast-grid').addEventListener('click', e => {
+        const btn = e.target.closest('.btn-over, .btn-under');
+        if (!btn) return;
+        const card = btn.closest('.day-bet-card');
+        if (!card) return;
+        handleBetClick(
+          card.dataset.city,
+          card.dataset.date,
+          parseFloat(card.dataset.line),
+          btn.dataset.pick
+        );
+      });
+
+      document.getElementById('tab-leagues').addEventListener('click', () => switchTab('leagues'));
+    });
+
+    // ═══════════════════════════════════════════════════════════════════
+    // PAGE 3: LEAGUES  (Supabase-backed multiplayer weekly betting)
+    // ═══════════════════════════════════════════════════════════════════
+
+    // ─── SUPABASE CONFIG ─────────────────────────────────────────────
+    // Replace these with your Supabase project values before leagues will work.
+    // 1. Go to supabase.com → your project → Settings → API
+    // 2. Copy "Project URL" and "anon public" key
+    const SUPABASE_URL  = 'https://oqgcechveunnmyjmqiji.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ2NlY2h2ZXVubm15am1xaWppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3ODg0MTQsImV4cCI6MjA4NzM2NDQxNH0.y_Uu_TF-TIpNJwYcUnohTMlp96VPYdSt7dEqEZ9QV_o';
+
+    let sb = null;
+    function getSupabase() {
+      if (!sb) {
+        if (SUPABASE_URL === 'YOUR_SUPABASE_URL') return null;
+        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+      }
+      return sb;
+    }
+
+    // ─── MODULE STATE ────────────────────────────────────────────────
+    let leagueUser        = null;   // current Supabase auth user + profile
+    let leagueInitialized = false;
+    let currentLeague     = null;   // league currently being viewed
+    let currentWeek       = null;   // league_week currently being viewed
+
+    // ─── AUTH ────────────────────────────────────────────────────────
+    async function leagueSignUp(username, email, password) {
+      const client = getSupabase();
+      if (!client) return { success: false, error: 'Supabase not configured.' };
+      const { data, error } = await client.auth.signUp({
+        email, password,
+        options: { emailRedirectTo: window.location.href.split('#')[0] }
+      });
+      if (error) return { success: false, error: error.message };
+      // Store username — profile row is created after email confirmation
+      localStorage.setItem('wb_pending_league_username', username.trim());
+      return { success: true, needsConfirmation: true, email };
+    }
+
+    async function leagueSignIn(email, password) {
+      const client = getSupabase();
+      if (!client) return { success: false, error: 'Supabase not configured.' };
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) return { success: false, error: error.message };
+      const { data: profile } = await client.from('profiles').select('*').eq('id', data.user.id).single();
+      leagueUser = { ...data.user, profile };
+      return { success: true };
+    }
+
+    async function leagueSignOut() {
+      const client = getSupabase();
+      if (client) await client.auth.signOut();
+      leagueUser = null;
+      currentLeague = null;
+      currentWeek = null;
+      renderLeaguesPage();
+    }
+
+    async function restoreLeagueSession() {
+      const client = getSupabase();
+      if (!client) return;
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) return;
+      let { data: profile } = await client.from('profiles').select('*').eq('id', session.user.id).single();
+      // Post-confirmation: create profile if it doesn't exist yet
+      if (!profile) {
+        const pendingUsername = localStorage.getItem('wb_pending_league_username');
+        if (pendingUsername) {
+          const { data: newProfile, error } = await client
+            .from('profiles').insert({ id: session.user.id, username: pendingUsername })
+            .select().single();
+          if (!error) {
+            profile = newProfile;
+            localStorage.removeItem('wb_pending_league_username');
+          }
+        }
+      }
+      if (profile) leagueUser = { ...session.user, profile };
+    }
+
+    // ─── UTILITIES ───────────────────────────────────────────────────
+    function generateInviteCode() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      return code;
+    }
+
+    function computeWeekDateRange(weekStartDay) {
+      // weekStartDay: 0=Sun 1=Mon … 6=Sat
+      const today = new Date();
+      const todayDay = today.getDay();
+      let daysBack = (todayDay - weekStartDay + 7) % 7;
+      const start = new Date(today);
+      start.setDate(today.getDate() - daysBack);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      const fmt = d => d.toISOString().split('T')[0];
+      return { startDate: fmt(start), endDate: fmt(end) };
+    }
+
+    // ─── LEAGUE CRUD ─────────────────────────────────────────────────
+    async function createLeague(name, weekStartDay, cityNames) {
+      const client = getSupabase();
+      if (!client || !leagueUser) return { success: false, error: 'Not signed in.' };
+      const invite_code = generateInviteCode();
+      const { data: league, error } = await client.from('leagues').insert({
+        name: name.trim(),
+        invite_code,
+        creator_id: leagueUser.id,
+        week_start_day: parseInt(weekStartDay),
+        city_names: cityNames
+      }).select().single();
+      if (error) return { success: false, error: error.message };
+      // auto-join creator
+      await client.from('league_members').insert({ league_id: league.id, user_id: leagueUser.id });
+      return { success: true, league };
+    }
+
+    async function joinLeague(inviteCode) {
+      const client = getSupabase();
+      if (!client || !leagueUser) return { success: false, error: 'Not signed in.' };
+      const { data: league, error } = await client
+        .from('leagues').select('*').eq('invite_code', inviteCode.trim().toUpperCase()).single();
+      if (error || !league) return { success: false, error: 'League not found. Check the invite code.' };
+      const { error: me } = await client.from('league_members').insert({ league_id: league.id, user_id: leagueUser.id });
+      if (me && me.code !== '23505') return { success: false, error: me.message }; // 23505 = already member
+      return { success: true, league };
+    }
+
+    async function getMyLeagues() {
+      const client = getSupabase();
+      if (!client || !leagueUser) return [];
+      const { data } = await client
+        .from('league_members')
+        .select('league_id, leagues(*)')
+        .eq('user_id', leagueUser.id);
+      return (data || []).map(r => r.leagues).filter(Boolean);
+    }
+
+    async function getLeagueMembers(leagueId) {
+      const client = getSupabase();
+      if (!client) return [];
+      const { data } = await client
+        .from('league_members')
+        .select('user_id, profiles(username)')
+        .eq('league_id', leagueId);
+      return (data || []).map(r => ({ userId: r.user_id, username: r.profiles?.username || 'Unknown' }));
+    }
+
+    // ─── WEEK MANAGEMENT ─────────────────────────────────────────────
+    async function getOrCreateCurrentWeek(league) {
+      const client = getSupabase();
+      if (!client) return null;
+      const { startDate, endDate } = computeWeekDateRange(league.week_start_day);
+      // look for existing open or settling week covering today
+      const { data: existing } = await client
+        .from('league_weeks')
+        .select('*')
+        .eq('league_id', league.id)
+        .eq('start_date', startDate)
+        .maybeSingle();
+      if (existing) return existing;
+      // find the latest week number
+      const { data: weeks } = await client
+        .from('league_weeks')
+        .select('week_number')
+        .eq('league_id', league.id)
+        .order('week_number', { ascending: false })
+        .limit(1);
+      const nextNum = weeks && weeks.length > 0 ? weeks[0].week_number + 1 : 1;
+      const { data: created, error } = await client.from('league_weeks').insert({
+        league_id: league.id,
+        week_number: nextNum,
+        start_date: startDate,
+        end_date: endDate,
+        status: 'open'
+      }).select().single();
+      return created || null;
+    }
+
+    async function getAllLeagueWeeks(leagueId) {
+      const client = getSupabase();
+      if (!client) return [];
+      const { data } = await client
+        .from('league_weeks')
+        .select('*')
+        .eq('league_id', leagueId)
+        .order('week_number', { ascending: false });
+      return data || [];
+    }
+
+    // ─── LEAGUE BETTING ──────────────────────────────────────────────
+    async function placeLeagueBet(leagueId, weekId, cityName, lat, lon, targetDate, forecastLine, pick) {
+      const client = getSupabase();
+      if (!client || !leagueUser) return { success: false, error: 'Not signed in.' };
+      if (isDatePast(targetDate)) return { success: false, error: 'Cannot bet on a past date.' };
+      const daysOut = daysBetween(todayStr(), targetDate);
+      const pointsStake = pointsForDaysOut(daysOut);
+      const { data, error } = await client.from('league_bets').insert({
+        league_id: leagueId,
+        league_week_id: weekId,
+        user_id: leagueUser.id,
+        city_name: cityName,
+        city_lat: lat,
+        city_lon: lon,
+        target_date: targetDate,
+        days_out: daysOut,
+        forecast_line: forecastLine,
+        pick,
+        status: 'pending',
+        points_stake: pointsStake,
+        points_earned: 0
+      }).select().single();
+      if (error) {
+        if (error.code === '23505') return { success: false, error: 'You already have a bet on this city/day.' };
+        return { success: false, error: error.message };
+      }
+      return { success: true, bet: data };
+    }
+
+    async function getMyLeagueBetsForWeek(leagueId, weekId) {
+      const client = getSupabase();
+      if (!client || !leagueUser) return [];
+      const { data } = await client
+        .from('league_bets')
+        .select('*')
+        .eq('league_id', leagueId)
+        .eq('league_week_id', weekId)
+        .eq('user_id', leagueUser.id);
+      return data || [];
+    }
+
+    async function getAllLeagueBetsForWeek(leagueId, weekId) {
+      const client = getSupabase();
+      if (!client) return [];
+      const { data } = await client
+        .from('league_bets')
+        .select('*')
+        .eq('league_id', leagueId)
+        .eq('league_week_id', weekId);
+      return data || [];
+    }
+
+    // ─── SETTLEMENT ──────────────────────────────────────────────────
+    async function runLeagueSettlement(league, week, showFeedback = true) {
+      const client = getSupabase();
+      if (!client) return;
+      const today = todayStr();
+      if (week.end_date >= today) {
+        if (showFeedback) showToast('Week is still in progress — settlement runs after ' + formatDateDisplay(week.end_date), 'info');
+        return;
+      }
+      const allBets = await getAllLeagueBetsForWeek(league.id, week.id);
+      const pending = allBets.filter(b => b.status === 'pending' && b.target_date < today);
+      if (pending.length === 0) {
+        if (showFeedback) showToast('No pending bets to settle.', 'info');
+        return;
+      }
+      // group by city
+      const byCity = {};
+      pending.forEach(b => {
+        if (!byCity[b.city_name]) byCity[b.city_name] = { lat: b.city_lat, lon: b.city_lon, bets: [] };
+        byCity[b.city_name].bets.push(b);
+      });
+      let settled = 0, errors = 0;
+      for (const [, { lat, lon, bets: cityBets }] of Object.entries(byCity)) {
+        const dates = [...new Set(cityBets.map(b => b.target_date))].sort();
+        try {
+          const actuals = await fetchActualHighs(lat, lon, dates[0], dates[dates.length - 1]);
+          for (const bet of cityBets) {
+            const actual = actuals[bet.target_date];
+            if (actual == null) continue;
+            const won = bet.pick === 'over' ? actual > bet.forecast_line : actual < bet.forecast_line;
+            await client.from('league_bets').update({
+              status: won ? 'won' : 'lost',
+              points_earned: won ? bet.points_stake : 0,
+              actual_high: actual,
+              settled_at: new Date().toISOString()
+            }).eq('id', bet.id);
+            settled++;
+          }
+        } catch { errors++; }
+      }
+      // mark week closed if all past bets are done
+      if (week.end_date < today) {
+        await client.from('league_weeks').update({ status: 'closed' }).eq('id', week.id);
+      }
+      if (showFeedback) showToast(`Settled ${settled} bet${settled !== 1 ? 's' : ''}${errors ? ` (${errors} errors)` : ''}.`, settled > 0 ? 'success' : 'info');
+      return { settled, errors };
+    }
+
+    // ─── STANDINGS ───────────────────────────────────────────────────
+    async function computeWeeklyStandings(leagueId, weekId, members) {
+      const allBets = await getAllLeagueBetsForWeek(leagueId, weekId);
+      const map = {};
+      members.forEach(m => { map[m.userId] = { username: m.username, pts: 0, wins: 0, losses: 0 }; });
+      allBets.filter(b => b.status !== 'pending').forEach(b => {
+        if (!map[b.user_id]) return;
+        map[b.user_id].pts   += b.points_earned;
+        if (b.status === 'won')  map[b.user_id].wins++;
+        if (b.status === 'lost') map[b.user_id].losses++;
+      });
+      return Object.values(map).sort((a, b) => b.pts - a.pts || b.wins - a.wins);
+    }
+
+    async function computeSeasonStandings(leagueId, members) {
+      const client = getSupabase();
+      if (!client) return [];
+      const { data: allBets } = await client
+        .from('league_bets')
+        .select('user_id, points_earned, status')
+        .eq('league_id', leagueId)
+        .neq('status', 'pending');
+      const map = {};
+      members.forEach(m => { map[m.userId] = { username: m.username, pts: 0, wins: 0, losses: 0 }; });
+      (allBets || []).forEach(b => {
+        if (!map[b.user_id]) return;
+        map[b.user_id].pts   += b.points_earned;
+        if (b.status === 'won')  map[b.user_id].wins++;
+        if (b.status === 'lost') map[b.user_id].losses++;
+      });
+      return Object.values(map).sort((a, b) => b.pts - a.pts || b.wins - a.wins);
+    }
+
+    // ─── RENDERING ───────────────────────────────────────────────────
+    function renderLeagueSignInForm(mode = 'signin') {
+      const isSignup = mode === 'signup';
+      return `
+        <form class="league-auth-form" id="league-auth-form">
+          <h2>${isSignup ? '🏆 Join Weather Leagues' : '🏆 Sign In'}</h2>
+          ${isSignup ? `<input type="text" name="username" placeholder="Username" required>` : ''}
+          <input type="email" name="email" placeholder="Email" required>
+          <input type="password" name="password" placeholder="Password" required>
+          <button type="submit" class="btn-primary">${isSignup ? 'Create Account' : 'Sign In'}</button>
+          <div class="auth-toggle">
+            ${isSignup
+              ? `Already have an account? <span data-auth-mode="signin">Sign in</span>`
+              : `New here? <span data-auth-mode="signup">Create account</span>`}
+          </div>
+          <div class="auth-error" id="league-auth-error"></div>
+        </form>`;
+    }
+
+    function renderLeagueCardHTML(league) {
+      const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const { startDate, endDate } = computeWeekDateRange(league.week_start_day);
+      return `
+        <div class="league-card" data-league-id="${league.id}">
+          <div class="league-card-name">${escapeHtml(league.name)}</div>
+          <div class="league-card-meta">
+            Resets every ${DAYS[league.week_start_day]}<br>
+            ${league.city_names.length} cit${league.city_names.length === 1 ? 'y' : 'ies'}<br>
+            Current week: ${formatDateDisplay(startDate)} – ${formatDateDisplay(endDate)}
+          </div>
+          <div class="league-card-code">${league.invite_code}</div>
+        </div>`;
+    }
+
+    function renderLeagueDashboardHTML(leagues) {
+      const username = leagueUser?.profile?.username || leagueUser?.email || '';
+      return `
+        <div class="league-signout-bar">
+          <span style="color:rgba(255,255,255,.5);font-size:.85rem;margin-right:.75rem">👤 ${escapeHtml(username)}</span>
+          <button class="btn-league-signout" id="btn-league-signout">Sign Out</button>
+        </div>
+        <div class="leagues-dashboard-header">
+          <h2>Your Leagues</h2>
+          <div class="league-action-btns">
+            <button class="btn-league-action" id="btn-join-league">Join with Code</button>
+            <button class="btn-league-action primary" id="btn-create-league">+ Create League</button>
+          </div>
+        </div>
+        ${leagues.length === 0
+          ? `<div class="no-leagues-msg">You're not in any leagues yet.<br>Create one or enter an invite code to get started.</div>`
+          : `<div class="leagues-grid">${leagues.map(renderLeagueCardHTML).join('')}</div>`
+        }`;
+    }
+
+    function renderStandingsTable(rows) {
+      if (rows.length === 0) return `<div class="standings-empty">No settled bets yet this week.</div>`;
+      return `<table class="standings-table">
+        <thead><tr>
+          <th class="standings-rank">#</th>
+          <th>Player</th>
+          <th class="standings-wl" style="text-align:right">W–L</th>
+          <th class="standings-pts" style="text-align:right">Pts</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map((r, i) => `<tr>
+            <td class="standings-rank${i === 0 ? ' standings-rank-1' : ''}">${i === 0 ? '👑' : i + 1}</td>
+            <td class="standings-username">${escapeHtml(r.username)}</td>
+            <td class="standings-wl">${r.wins}–${r.losses}</td>
+            <td class="standings-pts">${r.pts}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+    }
+
+    async function renderStandingsPanel(league, week, members) {
+      const weeklyRows  = await computeWeeklyStandings(league.id, week.id, members);
+      const seasonRows  = await computeSeasonStandings(league.id, members);
+      return `
+        <div class="standings-panel">
+          <div class="standings-tabs">
+            <button class="standings-tab-btn active" data-standings="weekly">This Week</button>
+            <button class="standings-tab-btn" data-standings="season">Season</button>
+          </div>
+          <div id="standings-weekly">${renderStandingsTable(weeklyRows)}</div>
+          <div id="standings-season" hidden>${renderStandingsTable(seasonRows)}</div>
+        </div>`;
+    }
+
+    async function renderLeagueViewHTML(league, week, forecastData, myBets) {
+      const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const members = await getLeagueMembers(league.id);
+      const today = todayStr();
+
+      // Build betting grid — only league cities, only week dates
+      const cityRows = league.city_names.map(cityName => {
+        const loc = LOCATIONS.find(l => l.name === cityName);
+        if (!loc) return '';
+        const days = (forecastData[cityName] || []).filter(d => d.date >= week.start_date && d.date <= week.end_date);
+        if (days.length === 0) return '';
+        const betsByDate = {};
+        myBets.filter(b => b.city_name === cityName).forEach(b => { betsByDate[b.target_date] = b; });
+        const cards = days.map(day => renderDayBetCard(cityName, day, betsByDate[day.date] || null, today).outerHTML).join('');
+        return `<div class="city-forecast-section">
+          <div class="city-forecast-header">${escapeHtml(cityName)}</div>
+          <div class="day-cards-row">${cards}</div>
+        </div>`;
+      }).join('');
+
+      const standingsHTML = await renderStandingsPanel(league, week, members);
+      const { startDate, endDate } = { startDate: week.start_date, endDate: week.end_date };
+
+      return `
+        <div class="league-view-header">
+          <div class="league-view-title">${escapeHtml(league.name)}</div>
+          <div class="league-view-meta">
+            Week ${week.week_number} · Resets every ${DAYS[league.week_start_day]} ·
+            ${formatDateDisplay(startDate)} – ${formatDateDisplay(endDate)}
+            ${week.status === 'closed' ? ' · <strong style="color:#ff6b6b">Closed</strong>' : ''}
+          </div>
+          <div class="league-view-actions">
+            <button class="btn-back" id="btn-back-to-dashboard">← Leagues</button>
+            <button class="invite-code-display" id="btn-copy-invite" title="Click to copy">${league.invite_code} 📋</button>
+            <button class="btn-league-action" id="btn-league-settle">⚡ Settle</button>
+          </div>
+        </div>
+        <div class="league-betting-section">
+          <h3>🎯 This Week's Picks</h3>
+          <div id="league-forecast-grid">${cityRows}</div>
+        </div>
+        ${standingsHTML}`;
+    }
+
+    async function renderLeaguesPage() {
+      const container = document.getElementById('leagues-content');
+      if (!container) return;
+
+      if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+        container.innerHTML = `<div style="text-align:center;padding:3rem;color:rgba(255,255,255,.5)">
+          <p style="font-size:1.1rem;margin-bottom:1rem">⚙️ Supabase not configured yet.</p>
+          <p style="font-size:.9rem">Set <code>SUPABASE_URL</code> and <code>SUPABASE_ANON</code> constants<br>in the script, then run the SQL schema in your Supabase project.</p>
+        </div>`;
+        return;
+      }
+
+      if (!leagueUser) {
+        container.innerHTML = renderLeagueSignInForm('signin');
+        wireLeagueAuthForm();
+        return;
+      }
+
+      // Signed in but no profile yet — prompt for username
+      if (!leagueUser.profile) {
+        container.innerHTML = `
+          <form class="league-auth-form" id="league-username-form">
+            <h2>🏆 Choose a Username</h2>
+            <input type="text" name="username" placeholder="Username" required maxlength="30">
+            <button type="submit" class="btn-primary">Save & Continue</button>
+            <div class="auth-error" id="league-username-error"></div>
+          </form>`;
+        const form = document.getElementById('league-username-form');
+        form.addEventListener('submit', async e => {
+          e.preventDefault();
+          const username = form.username.value.trim();
+          const errEl = document.getElementById('league-username-error');
+          if (!username) return;
+          const client = getSupabase();
+          const { data: profile, error } = await client
+            .from('profiles').insert({ id: leagueUser.id, username })
+            .select().single();
+          if (error) { errEl.textContent = error.message; return; }
+          leagueUser = { ...leagueUser, profile };
+          renderLeaguesPage();
+        });
+        return;
+      }
+
+      container.innerHTML = '<div style="text-align:center;padding:2rem;color:rgba(255,255,255,.4)">Loading leagues…</div>';
+      const leagues = await getMyLeagues();
+      container.innerHTML = renderLeagueDashboardHTML(leagues);
+      wireLeagueDashboard(leagues);
+    }
+
+    // ─── EVENT WIRING ────────────────────────────────────────────────
+    function wireLeagueAuthForm() {
+      const form = document.getElementById('league-auth-form');
+      if (!form) return;
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const errEl = document.getElementById('league-auth-error');
+        errEl.textContent = '';
+        const email    = form.email?.value || '';
+        const password = form.password?.value || '';
+        const username = form.username?.value || '';
+        const isSignup = !!form.username;
+        const result   = isSignup ? await leagueSignUp(username, email, password) : await leagueSignIn(email, password);
+        if (!result.success) { errEl.textContent = result.error; return; }
+        if (result.needsConfirmation) {
+          document.getElementById('leagues-content').innerHTML = `
+            <div style="text-align:center;padding:3rem 1rem">
+              <p style="font-size:2rem;margin-bottom:1rem">📧</p>
+              <p style="font-size:1.2rem;font-weight:700;margin-bottom:.75rem">Check your email</p>
+              <p style="color:rgba(255,255,255,.6);font-size:.95rem;line-height:1.6">
+                We sent a confirmation link to <strong>${escapeHtml(result.email)}</strong>.<br>
+                Click it to activate your account, then return here.
+              </p>
+            </div>`;
+          return;
+        }
+        renderLeaguesPage();
+      });
+      form.querySelectorAll('[data-auth-mode]').forEach(el => {
+        el.addEventListener('click', () => {
+          document.getElementById('leagues-content').innerHTML = renderLeagueSignInForm(el.dataset.authMode);
+          wireLeagueAuthForm();
+        });
+      });
+    }
+
+    function wireLeagueDashboard(leagues) {
+      document.getElementById('btn-league-signout')?.addEventListener('click', leagueSignOut);
+      document.getElementById('btn-create-league')?.addEventListener('click', showCreateLeagueModal);
+      document.getElementById('btn-join-league')?.addEventListener('click', showJoinLeagueModal);
+      document.querySelectorAll('.league-card').forEach(card => {
+        card.addEventListener('click', async () => {
+          const leagueId = card.dataset.leagueId;
+          const league = leagues.find(l => l.id === leagueId);
+          if (!league) return;
+          await openLeagueView(league);
+        });
+      });
+    }
+
+    async function openLeagueView(league) {
+      currentLeague = league;
+      const container = document.getElementById('leagues-content');
+      container.innerHTML = '<div style="text-align:center;padding:2rem;color:rgba(255,255,255,.4)">Loading league…</div>';
+      try {
+        const week = await getOrCreateCurrentWeek(league);
+        if (!week) { container.innerHTML = '<div style="padding:2rem;color:#ff6b6b">Error loading week.</div>'; return; }
+        currentWeek = week;
+        // auto-settle if week is past
+        if (week.end_date < todayStr() && week.status !== 'closed') {
+          await runLeagueSettlement(league, week, false);
+          const { data: refreshed } = await getSupabase().from('league_weeks').select('*').eq('id', week.id).single();
+          if (refreshed) currentWeek = refreshed;
+        }
+        // fetch forecast (reuse existing cache)
+        const forecastData = await fetchAllForecasts();
+        const myBets = await getMyLeagueBetsForWeek(league.id, week.id);
+        container.innerHTML = await renderLeagueViewHTML(league, currentWeek, forecastData, myBets);
+        wireLeagueView(league, currentWeek);
+      } catch (err) {
+        container.innerHTML = `<div style="padding:2rem;color:#ff6b6b">Error: ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    function wireLeagueView(league, week) {
+      document.getElementById('btn-back-to-dashboard')?.addEventListener('click', renderLeaguesPage);
+      document.getElementById('btn-copy-invite')?.addEventListener('click', () => {
+        navigator.clipboard?.writeText(league.invite_code).then(() => showToast('Invite code copied!', 'success'));
+      });
+      document.getElementById('btn-league-settle')?.addEventListener('click', async () => {
+        await runLeagueSettlement(league, week, true);
+        await openLeagueView(league); // re-render
+      });
+      // standings tabs
+      document.querySelectorAll('.standings-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.standings-tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const target = btn.dataset.standings;
+          document.getElementById('standings-weekly').hidden = target !== 'weekly';
+          document.getElementById('standings-season').hidden  = target !== 'season';
+        });
+      });
+      // bet clicks (delegate on league grid)
+      document.getElementById('league-forecast-grid')?.addEventListener('click', async e => {
+        const btn = e.target.closest('.btn-over, .btn-under');
+        if (!btn) return;
+        const card = btn.closest('.day-bet-card');
+        if (!card) return;
+        const { city, date, line } = card.dataset;
+        const pick = btn.dataset.pick;
+        const loc = LOCATIONS.find(l => l.name === city);
+        if (!loc) return;
+        const result = await placeLeagueBet(league.id, week.id, city, loc.lat, loc.lon, date, parseFloat(line), pick);
+        if (!result.success) { showToast(result.error, 'error'); return; }
+        updateCardAfterBet(city, date, result.bet);
+        showToast(`${pick === 'over' ? '▲ Over' : '▼ Under'} ${parseFloat(line)}°F — ${result.bet.points_stake} pt${result.bet.points_stake !== 1 ? 's' : ''} at stake`, 'success');
+      });
+    }
+
+    function showCreateLeagueModal() {
+      const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const dayOptions = DAYS.map((d, i) => `<option value="${i}">${d}</option>`).join('');
+      const cityChecks = LOCATIONS.map(l => `
+        <label class="city-checkbox-label">
+          <input type="checkbox" name="city" value="${escapeHtml(l.name)}">
+          ${escapeHtml(l.name)}
+        </label>`).join('');
+      const overlay = document.createElement('div');
+      overlay.className = 'league-modal-overlay';
+      overlay.innerHTML = `
+        <div class="league-modal">
+          <h3>Create a League</h3>
+          <label>League Name</label>
+          <input type="text" id="new-league-name" placeholder="e.g. Office Weather Wars" maxlength="40">
+          <label>Week starts on</label>
+          <select id="new-league-day">${dayOptions}</select>
+          <label>Cities in play (select at least 1)</label>
+          <div class="city-checkboxes">${cityChecks}</div>
+          <div class="modal-error" id="create-league-error"></div>
+          <div class="league-modal-actions">
+            <button class="btn-modal-cancel" id="btn-cancel-create">Cancel</button>
+            <button class="btn-modal-confirm" id="btn-confirm-create">Create</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      document.getElementById('btn-cancel-create').addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+      document.getElementById('btn-confirm-create').addEventListener('click', async () => {
+        const name = document.getElementById('new-league-name').value.trim();
+        const weekStartDay = parseInt(document.getElementById('new-league-day').value);
+        const cityNames = [...overlay.querySelectorAll('input[name=city]:checked')].map(cb => cb.value);
+        const errEl = document.getElementById('create-league-error');
+        if (!name) { errEl.textContent = 'Please enter a league name.'; return; }
+        if (cityNames.length === 0) { errEl.textContent = 'Select at least one city.'; return; }
+        errEl.textContent = '';
+        const result = await createLeague(name, weekStartDay, cityNames);
+        if (!result.success) { errEl.textContent = result.error; return; }
+        overlay.remove();
+        showToast(`League created! Invite code: ${result.league.invite_code}`, 'success');
+        await openLeagueView(result.league);
+      });
+    }
+
+    function showJoinLeagueModal() {
+      const overlay = document.createElement('div');
+      overlay.className = 'league-modal-overlay';
+      overlay.innerHTML = `
+        <div class="league-modal">
+          <h3>Join a League</h3>
+          <label>Invite Code</label>
+          <input type="text" id="join-code-input" placeholder="e.g. WX9K2A" maxlength="6"
+            style="text-transform:uppercase;letter-spacing:.15em;font-size:1.1rem;text-align:center">
+          <div class="modal-error" id="join-league-error"></div>
+          <div class="league-modal-actions">
+            <button class="btn-modal-cancel" id="btn-cancel-join">Cancel</button>
+            <button class="btn-modal-confirm" id="btn-confirm-join">Join</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      document.getElementById('btn-cancel-join').addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+      document.getElementById('join-code-input').addEventListener('input', e => {
+        e.target.value = e.target.value.toUpperCase();
+      });
+      document.getElementById('btn-confirm-join').addEventListener('click', async () => {
+        const code = document.getElementById('join-code-input').value.trim();
+        const errEl = document.getElementById('join-league-error');
+        if (code.length < 6) { errEl.textContent = 'Enter a 6-character code.'; return; }
+        const result = await joinLeague(code);
+        if (!result.success) { errEl.textContent = result.error; return; }
+        overlay.remove();
+        showToast(`Joined ${result.league.name}!`, 'success');
+        await openLeagueView(result.league);
+      });
+    }
+
+    // ─── INIT ────────────────────────────────────────────────────────
+    async function initLeaguesPage() {
+      if (leagueInitialized) { renderLeaguesPage(); return; }
+      leagueInitialized = true;
+      // Handle post-confirmation redirect and sign-out events
+      const client = getSupabase();
+      if (client) {
+        client.auth.onAuthStateChange(async (event, session) => {
+          if (event === 'SIGNED_IN' && session && !leagueUser) {
+            await restoreLeagueSession();
+            renderLeaguesPage();
+          } else if (event === 'SIGNED_OUT') {
+            leagueUser = null;
+            renderLeaguesPage();
+          }
+        });
+      }
+      await restoreLeagueSession();
+      renderLeaguesPage();
+    }
+  </script>
+
+</body>
+</html>
