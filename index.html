@@ -2504,8 +2504,10 @@
     async function joinLeague(inviteCode) {
       const client = getSupabase();
       if (!client || !leagueUser) return { success: false, error: 'Not signed in.' };
-      const { data: league, error } = await client
-        .from('leagues').select('*').eq('invite_code', inviteCode.trim().toUpperCase()).single();
+      const { data, error } = await client.rpc('get_league_by_invite_code', {
+        p_invite_code: inviteCode.trim().toUpperCase()
+      });
+      const league = data?.[0];
       if (error || !league) return { success: false, error: 'League not found. Check the invite code.' };
       const { error: me } = await client.from('league_members').insert({ league_id: league.id, user_id: leagueUser.id });
       if (me && me.code !== '23505') return { success: false, error: me.message }; // 23505 = already member
